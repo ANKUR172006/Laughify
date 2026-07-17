@@ -1,0 +1,71 @@
+.lose-page {
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 40px;
+  position: relative;
+}
+
+.lose-container {
+  width: 100%;
+  max-width: 700px;
+}
+
+.lose-content {
+  padding: 70px 60px;
+  text-align: center;
+}
+
+.lose-emoji {
+  font-size: 120px;
+  margin-bottom: 24px;
+  filter: drop-shadow(0 10px 30px rgba(0, 0, 0, 0.3));
+}
+
+.lose-title {
+  font-family: "Poppins", sans-serif;
+  font-size: 44px;
+  font-weight: 900;
+  margin-bottom: 20px;
+  text-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.lose-text {
+  font-size: 20px;
+  line-height: 1.7;
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 16px;
+  font-weight: 500;
+}
+
+.lose-actions {
+  display: flex;
+  gap: 24px;
+  justify-content: center;
+  margin-top: 40px;
+  align-items: center;
+}
+.lose-actions button, .lose-actions a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .lose-content {
+    padding: 50px 30px;
+  }
+  .lose-emoji {
+    font-size: 90px;
+  }
+  .lose-title {
+    font-size: 34px;
+  }
+  .lose-actions {
+    flex-direction: column;
+  }
+}/*# sourceMappingURL=LosePage.css.map */

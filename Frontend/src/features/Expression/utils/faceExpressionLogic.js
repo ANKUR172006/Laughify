@@ -1,0 +1,412 @@
+import { FaceLandmarker, FilesetResolver } from "@mediapipe/tasks-vision";
+
+// Valence & Arousal mapping for emotions
+export const EMOTION_COORDINATES = {
+  "Neutral": { x: 0.0, y: 0.0 },
+  "Genuine Happy": { x: 0.85, y: 0.45 },
+  "Excited": { x: 0.95, y: 0.9 },
+  "Surprised": { x: 0.35, y: 0.95 },
+  "Sadness": { x: -0.85, y: -0.65 },
+  "Anger": { x: -0.75, y: 0.75 },
+  "Disgust": { x: -0.85, y: 0.25 },
+  "Fear": { x: -0.65, y: 0.85 },
+  "Kiss / Pucker": { x: 0.45, y: 0.15 },
+  "Winking / Smirking": { x: 0.65, y: 0.35 },
+  "Thinking / Skeptical": { x: -0.15, y: 0.15 },
+  "Bored / Tired": { x: -0.35, y: -0.75 },
+  "Eyes Closed": { x: 0.0, y: -0.5 }
+};
+
+// Colors for emotions
+export const EMOTION_COLORS = {
+  "Neutral": "#94a3b8",
+  "Genuine Happy": "#22c55e",
+  "Excited": "#eab308",
+  "Surprised": "#06b6d4",
+  "Sadness": "#3b82f6",
+  "Anger": "#ef4444",
+  "Disgust": "#a855f7",
+  "Fear": "#f97316",
+  "Kiss / Pucker": "#ec4899",
+  "Winking / Smirking": "#10b981",
+  "Thinking / Skeptical": "#6366f1",
+  "Bored / Tired": "#64748b",
+  "Eyes Closed": "#1e293b"
+};
+
+// Standard landmark connections for rendering holographic lines
+export const LANDMARK_CONNECTIONS = {
+  leftEye: [33, 7, 163, 144, 145, 153, 154, 155, 133, 173, 157, 158, 159, 160, 161, 246, 33],
+  rightEye: [362, 382, 381, 380, 374, 373, 390, 249, 263, 466, 388, 387, 386, 385, 384, 398, 362],
+  leftEyebrow: [70, 63, 105, 66, 107, 55, 65, 52, 53, 46],
+  rightEyebrow: [300, 293, 334, 296, 336, 285, 295, 282, 283, 276],
+  lipsOuter: [61, 146, 91, 181, 84, 17, 314, 405, 321, 375, 291, 308, 324, 318, 402, 317, 14, 87, 178, 95, 88, 146],
+  lipsInner: [78, 95, 88, 178, 87, 14, 317, 402, 318, 324, 308, 415, 310, 311, 312, 13, 82, 81, 80, 191, 78],
+  faceContour: [
+    10, 338, 297, 332, 284, 251, 389, 356, 454, 323, 361, 288, 397, 365, 379, 378, 400, 377,
+    152, 148, 176, 149, 150, 136, 172, 58, 132, 93, 234, 127, 162, 21, 54, 103, 67, 109, 10
+  ]
+};
+
+// Audio/Beep cues for calibration
+export const playBeep = (freq, duration) => {
+  try {
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const oscillator = audioCtx.createOscillator();
+    const gainNode = audioCtx.createGain();
+    oscillator.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+    oscillator.type = "sine";
+    oscillator.frequency.value = freq;
+    gainNode.gain.setValueAtTime(0.08, audioCtx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+    oscillator.start();
+    oscillator.stop(audioCtx.currentTime + duration);
+  } catch (e) {
+    console.warn("Audio Context block", e);
+  }
+};
+
+// Initialize Face Landmarker
+export const initializeFaceLandmarker = async () => {
+  const vision = await FilesetResolver.forVisionTasks(
+    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm"
+  );
+
+  return await FaceLandmarker.createFromOptions(vision, {
+    baseOptions: {
+      modelAssetPath:
+        "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
+    },
+    runningMode: "VIDEO",
+    outputFaceBlendshapes: true,
+    outputFaceLandmarks: true,
+    outputFacialTransformationMatrixes: true,
+    numFaces: 1,
+    minFaceDetectionConfidence: 0.5, // Higher for more accurate face detection
+    minFacePresenceConfidence: 0.5,
+    minTrackingConfidence: 0.5
+  });
+};
+
+// Render Accurate Face Mesh
+export const renderFaceMesh = (ctx, canvas, landmarks, accentColor) => {
+  if (!ctx || !canvas || !landmarks) return;
+
+  // Get actual canvas dimensions
+  const w = canvas.width;
+  const h = canvas.height;
+
+  // Save context state
+  ctx.save();
+
+  ctx.clearRect(0, 0, w, h);
+
+  // Draw connections with better visibility
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = accentColor || "#6366f1";
+  ctx.globalAlpha = 0.8;
+
+  Object.entries(LANDMARK_CONNECTIONS).forEach(([, indices]) => {
+    ctx.beginPath();
+    let firstPoint = true;
+    indices.forEach((i) => {
+      const pt = landmarks[i];
+      if (pt) {
+        // Map normalized coordinates to canvas, then mirror horizontally
+        const x = (1 - pt.x) * w; // Flip X for mirror effect
+        const y = pt.y * h;
+        if (firstPoint) {
+          ctx.moveTo(x, y);
+          firstPoint = false;
+        } else {
+          ctx.lineTo(x, y);
+        }
+      }
+    });
+    ctx.stroke();
+  });
+
+  // Draw key landmarks for better visibility
+  ctx.fillStyle = accentColor || "#6366f1";
+  ctx.globalAlpha = 1;
+  // Draw all landmarks (but smaller)
+  landmarks.forEach((pt) => {
+    if (pt) {
+      const x = (1 - pt.x) * w;
+      const y = pt.y * h;
+      ctx.beginPath();
+      ctx.arc(x, y, 1.5, 0, 2 * Math.PI);
+      ctx.fill();
+    }
+  });
+
+  // Restore context state
+  ctx.restore();
+};
+
+// Improved eyes open detection
+const checkEyesOpen = (blendMap) => {
+  const blinkLeft = blendMap.eyeBlinkLeft || 0;
+  const blinkRight = blendMap.eyeBlinkRight || 0;
+  const squintLeft = blendMap.eyeSquintLeft || 0;
+  const squintRight = blendMap.eyeSquintRight || 0;
+  const wideLeft = blendMap.eyeWideLeft || 0;
+  const wideRight = blendMap.eyeWideRight || 0;
+  
+  // Average blink and squint for both eyes
+  const avgBlink = (blinkLeft + blinkRight) / 2;
+  const avgSquint = (squintLeft + squintRight) / 2;
+  const avgWide = (wideLeft + wideRight) / 2;
+  
+  // Calculate eyes open score (0-1) - more lenient
+  let eyesOpenScore = 1 - avgBlink * 0.8 - avgSquint * 0.3;
+  eyesOpenScore += avgWide * 0.2;
+  eyesOpenScore = Math.max(0, Math.min(1, eyesOpenScore));
+  
+  // Eyes are considered closed only if both are really closed
+  const leftEyeClosed = blinkLeft > 0.85;
+  const rightEyeClosed = blinkRight > 0.85;
+  const bothEyesClosed = leftEyeClosed && rightEyeClosed;
+  
+  return {
+    isOpen: !bothEyesClosed && eyesOpenScore > 0.45, // Much more lenient
+    score: eyesOpenScore,
+    leftBlink: blinkLeft,
+    rightBlink: blinkRight
+  };
+};
+
+// Improved eyes on screen detection - very lenient
+const checkEyesOnScreen = (blendMap) => {
+  // Get all look directions for both eyes
+  const lookInLeft = blendMap.eyeLookInLeft || 0;
+  const lookInRight = blendMap.eyeLookInRight || 0;
+  const lookOutLeft = blendMap.eyeLookOutLeft || 0;
+  const lookOutRight = blendMap.eyeLookOutRight || 0;
+  const lookUpLeft = blendMap.eyeLookUpLeft || 0;
+  const lookUpRight = blendMap.eyeLookUpRight || 0;
+  const lookDownLeft = blendMap.eyeLookDownLeft || 0;
+  const lookDownRight = blendMap.eyeLookDownRight || 0;
+  
+  // Only trigger if any one direction is REALLY strong
+  const maxLookLeft = Math.max(lookInLeft, lookOutLeft, lookUpLeft, lookDownLeft);
+  const maxLookRight = Math.max(lookInRight, lookOutRight, lookUpRight, lookDownRight);
+  const bothLookingAway = maxLookLeft > 0.6 && maxLookRight > 0.6;
+  
+  return {
+    isOnScreen: !bothLookingAway, // Only count as off screen if both eyes are looking away strongly
+    score: bothLookingAway ? 0.3 : 1.0,
+    lookScore: 1 - (maxLookLeft + maxLookRight) / 2,
+    symmetryScore: 1
+  };
+};
+
+// Calculate subtle smile intensity (0-100)
+const calculateSmileIntensity = (blendMap) => {
+  const smileL = blendMap.mouthSmileLeft || 0;
+  const smileR = blendMap.mouthSmileRight || 0;
+  const dimplerL = blendMap.mouthDimpleLeft || 0;
+  const dimplerR = blendMap.mouthDimpleRight || 0;
+  const cheekSquintL = blendMap.cheekSquintLeft || 0;
+  const cheekSquintR = blendMap.cheekSquintRight || 0;
+  
+  // Combine multiple smile-related blendshapes for better detection
+  const rawSmile = (
+    smileL * 0.4 + 
+    smileR * 0.4 + 
+    dimplerL * 0.1 + 
+    dimplerR * 0.1 + 
+    cheekSquintL * 0.05 + 
+    cheekSquintR * 0.05
+  );
+  
+  // Scale to 0-100 with extra sensitivity for small smiles
+  const scaledSmile = Math.min(100, rawSmile * 120); // Multiplier to make small smiles show up
+  return scaledSmile;
+};
+
+// Process face detection results with improved accuracy
+export const processFaceDetection = (result, calibrationData, smoothedEmotionsRef, smoothedValenceRef, smoothedArousalRef) => {
+  if (!result.faceBlendshapes?.length || !result.faceLandmarks?.length) {
+    return {
+      expression: "🚫 No Face Detected",
+      confidence: 0,
+      valence: 0.95 * smoothedValenceRef.current,
+      arousal: 0.95 * smoothedArousalRef.current,
+      activeBlendshapes: {},
+      landmarks: null,
+      smileIntensity: 0,
+      eyesOpen: { isOpen: true, score: 1, leftBlink: 0, rightBlink: 0 },
+      eyesOnScreen: { isOnScreen: true, score: 1, lookScore: 1, symmetryScore: 1 }
+    };
+  }
+
+  const landmarks = result.faceLandmarks[0];
+  const blendMap = Object.fromEntries(
+    result.faceBlendshapes[0].categories.map((item) => [
+      item.categoryName,
+      item.score,
+    ])
+  );
+
+  // Calibrated score function with improved baseline handling
+  const score = (name) => {
+    const raw = blendMap[name] ?? 0;
+    if (!calibrationData) return raw;
+    const baseline = calibrationData[name] ?? 0;
+    return Math.max(0, Math.min(1, (raw - baseline) / Math.max(0.005, 1.0 - baseline)));
+  };
+
+  // Enhanced FACS-inspired expression formulas
+  const smileL = score("mouthSmileLeft");
+  const smileR = score("mouthSmileRight");
+  const smile = (smileL + smileR) / 2;
+  const smileDiff = Math.abs(smileL - smileR);
+
+  const frown = (score("mouthFrownLeft") + score("mouthFrownRight")) / 2;
+  const jawOpen = score("jawOpen");
+  const browInnerUp = score("browInnerUp");
+  const browDown = (score("browDownLeft") + score("browDownRight")) / 2;
+  const eyeBlink = (score("eyeBlinkLeft") + score("eyeBlinkRight")) / 2;
+  const eyeWide = (score("eyeWideLeft") + score("eyeWideRight")) / 2;
+  const cheekSquint = (score("cheekSquintLeft") + score("cheekSquintRight")) / 2;
+  const mouthPress = (score("mouthPressLeft") + score("mouthPressRight")) / 2;
+  const mouthPucker = score("mouthPucker");
+  const mouthShrugUpper = score("mouthShrugUpper");
+  const mouthShrugLower = score("mouthShrugLower");
+  const noseSneer = (score("noseSneerLeft") + score("noseSneerRight")) / 2;
+  const mouthStretch = (score("mouthStretchLeft") + score("mouthStretchRight")) / 2;
+  const dimpler = (score("mouthDimpleLeft") + score("mouthDimpleRight")) / 2;
+  const browLeftUp = score("browOuterUpLeft");
+  const browRightUp = score("browOuterUpRight");
+  const browDiff = Math.abs(browLeftUp - browRightUp);
+  const mouthUpperUp = score("mouthUpperUpLeft") + score("mouthUpperUpRight");
+  const eyeSquint = (score("eyeSquintLeft") + score("eyeSquintRight")) / 2;
+
+  // Detailed blendshapes telemetry mapping
+  const activeBlendshapes = {
+    "Smile": smile,
+    "Frown": frown,
+    "Jaw Open": jawOpen,
+    "Eyebrows Up": browInnerUp,
+    "Eyebrows Down": browDown,
+    "Eyes Wide": eyeWide,
+    "Cheeks Squint": cheekSquint,
+    "Nose Wrinkle": noseSneer,
+    "Mouth Press": mouthPress,
+    "Mouth Pucker": mouthPucker
+  };
+
+  // 1. Genuine Happy (Duchenne) - enhanced with squint and smile combination
+  const genuineHappy = smile * 0.55 + cheekSquint * 0.35 + mouthUpperUp * 0.1;
+
+  // 2. Excited - improved with multiple cues
+  const excited = (smile > 0.15 && jawOpen > 0.05) ? (smile * 0.35 + jawOpen * 0.35 + browInnerUp * 0.2 + eyeWide * 0.1) : 0;
+
+  // 3. Surprised - more sensitive
+  const surprised = browInnerUp * 0.3 + eyeWide * 0.35 + jawOpen * 0.3 + mouthShrugUpper * 0.05;
+
+  // 4. Sadness - improved with better suppression
+  let sadness = frown * 0.45 + browInnerUp * 0.3 + mouthShrugLower * 0.25;
+  sadness *= Math.max(0, 1 - smile * 1.8);
+
+  // 5. Anger - more accurate
+  let anger = browDown * 0.45 + noseSneer * 0.3 + mouthPress * 0.25;
+  anger *= Math.max(0, 1 - smile * 1.8);
+
+  // 6. Disgust - enhanced with more blendshapes
+  let disgust = noseSneer * 0.45 + mouthShrugUpper * 0.3 + score("mouthRollLower") * 0.15 + eyeSquint * 0.1;
+  disgust *= Math.max(0, 1 - smile * 1.8);
+
+  // 7. Fear - improved
+  let fear = browInnerUp * 0.25 + eyeWide * 0.35 + mouthStretch * 0.3 + mouthShrugUpper * 0.1;
+  fear *= Math.max(0, 1 - smile * 1.8);
+
+  // 8. Kiss / Pucker
+  const kiss = mouthPucker * 0.75 + mouthPress * 0.25;
+
+  // 9. Winking / Smirking / Contempt
+  const smirk = (smileDiff > 0.1 && dimpler > 0.07) ? (smileDiff * 0.6 + dimpler * 0.4) : 0;
+
+  // 10. Thinking / Skeptical
+  const thinking = (browDiff > 0.25 || mouthPress > 0.3) ? ((browDiff * 0.5) + (mouthPress * 0.3) + (score("eyeLookDownLeft") + score("eyeLookDownRight")) * 0.2) : 0;
+
+  // 11. Bored / Tired - more sensitive
+  const bored = (eyeBlink > 0.35 && eyeBlink < 0.85) ? (eyeBlink * 0.65 + (1 - (smile + frown + jawOpen + browInnerUp)) * 0.35) : 0;
+
+  // 12. Eyes Closed / Sleeping
+  const eyesClosed = eyeBlink >= 0.85 ? eyeBlink : 0;
+
+  const rawEmotions = {
+    "Eyes Closed": { score: eyesClosed, threshold: 0.85, label: "😴 Eyes Closed" },
+    "Kiss / Pucker": { score: kiss, threshold: 0.4, label: "😘 Kiss / Pucker" },
+    "Winking / Smirking": { score: smirk, threshold: 0.2, label: "😏 Smirk / Contempt" },
+    "Excited": { score: excited, threshold: 0.25, label: "🤩 Excited" },
+    "Genuine Happy": { score: genuineHappy, threshold: 0.1, label: "😊 Happy" },
+    "Surprised": { score: surprised, threshold: 0.3, label: "😲 Surprised" },
+    "Sadness": { score: sadness, threshold: 0.2, label: "😢 Sadness" },
+    "Anger": { score: anger, threshold: 0.25, label: "😠 Anger" },
+    "Disgust": { score: disgust, threshold: 0.3, label: "🤢 Disgust" },
+    "Fear": { score: fear, threshold: 0.25, label: "😨 Fear" },
+    "Thinking / Skeptical": { score: thinking, threshold: 0.25, label: "🤔 Skeptical" },
+    "Bored / Tired": { score: bored, threshold: 0.3, label: "🥱 Bored / Tired" }
+  };
+
+  // Smooth scores using EMA - slightly slower for stability
+  const alpha = 0.15;
+  let selectedEmotion = null;
+  let maxVal = -1;
+
+  Object.keys(rawEmotions).forEach(key => {
+    const prev = smoothedEmotionsRef.current[key] ?? 0;
+    const curr = rawEmotions[key].score;
+    const smoothed = alpha * curr + (1 - alpha) * prev;
+    smoothedEmotionsRef.current[key] = smoothed;
+
+    if (smoothed >= rawEmotions[key].threshold && smoothed > maxVal) {
+      maxVal = smoothed;
+      selectedEmotion = { key, label: rawEmotions[key].label, val: smoothed };
+    }
+  });
+
+  // Compute Valence and Arousal targets
+  let targetX = 0;
+  let targetY = 0;
+  let expression, confidence;
+
+  if (selectedEmotion) {
+    const coord = EMOTION_COORDINATES[selectedEmotion.key] ?? { x: 0, y: 0 };
+    targetX = coord.x * selectedEmotion.val;
+    targetY = coord.y * selectedEmotion.val;
+    expression = selectedEmotion.label;
+    confidence = selectedEmotion.val;
+  } else {
+    const highestScore = Math.max(...Object.values(smoothedEmotionsRef.current));
+    expression = "😐 Neutral";
+    confidence = Math.max(0, 1 - highestScore);
+    targetX = 0;
+    targetY = 0;
+  }
+
+  // Smooth Valence & Arousal
+  smoothedValenceRef.current = alpha * targetX + (1 - alpha) * smoothedValenceRef.current;
+  smoothedArousalRef.current = alpha * targetY + (1 - alpha) * smoothedArousalRef.current;
+
+  // Calculate additional features
+  const smileIntensity = calculateSmileIntensity(blendMap);
+  const eyesOpenResult = checkEyesOpen(blendMap);
+  const eyesOnScreenResult = checkEyesOnScreen(blendMap);
+
+  return {
+    expression,
+    confidence,
+    valence: smoothedValenceRef.current,
+    arousal: smoothedArousalRef.current,
+    activeBlendshapes,
+    landmarks,
+    smileIntensity,
+    eyesOpen: eyesOpenResult,
+    eyesOnScreen: eyesOnScreenResult
+  };
+};

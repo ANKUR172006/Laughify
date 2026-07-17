@@ -1,0 +1,128 @@
+.leaderboard-page {
+  min-height: 100vh;
+  padding: 32px;
+}
+
+.leaderboard-shell {
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+.leaderboard-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.leaderboard-back,
+.leaderboard-meta {
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  color: white;
+  padding: 12px 20px;
+  border-radius: 16px;
+  text-decoration: none;
+  font-weight: 700;
+}
+
+.leaderboard-card {
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(12px);
+  border-radius: 32px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 34px;
+}
+
+.leaderboard-title {
+  text-align: center;
+  color: white;
+  font-size: 40px;
+  font-weight: 800;
+  margin-bottom: 24px;
+}
+
+.leaderboard-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.leaderboard-row {
+  display: grid;
+  grid-template-columns: 70px 70px 1fr auto;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 20px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+.leaderboard-row.top-rank {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.leaderboard-row.current-user {
+  outline: 2px solid rgba(255, 255, 255, 0.5);
+}
+
+.rank-cell {
+  color: white;
+  font-size: 28px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.avatar-cell {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 24px;
+  font-weight: 800;
+}
+
+.player-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.player-name {
+  color: white;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.player-subtitle {
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.level-cell {
+  color: white;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+@media (max-width: 768px) {
+  .leaderboard-topbar {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .leaderboard-row {
+    grid-template-columns: 56px 56px 1fr;
+  }
+
+  .level-cell {
+    grid-column: 1 / -1;
+    text-align: right;
+  }
+}
