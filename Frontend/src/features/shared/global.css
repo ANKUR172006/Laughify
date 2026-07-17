@@ -3,13 +3,6 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  cursor: none !important;
-  text-decoration: none !important;
-  caret-color: transparent !important;
-  -webkit-user-select: none !important;
-     -moz-user-select: none !important;
-          user-select: none !important;
-  outline: none !important;
 }
 
 :root {
@@ -38,7 +31,6 @@ body {
   color: var(--white);
   overflow-x: hidden;
   position: relative;
-  cursor: none;
 }
 
 /* Animated gradient background */
