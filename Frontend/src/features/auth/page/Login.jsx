@@ -3,6 +3,7 @@ import "../styles/Login.scss";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import gsap from "gsap";
+import { ArrowLeft, Eye, EyeOff } from "lucide-react";
 
 function Login() {
   const { loading, handleLogin } = useAuth();
@@ -11,89 +12,35 @@ function Login() {
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
-  const pageRef = useRef(null);
+  const containerRef = useRef(null);
   const cardRef = useRef(null);
   const headerRef = useRef(null);
   const formRef = useRef(null);
-  const linkRef = useRef(null);
+  const footerRef = useRef(null);
 
   useEffect(() => {
     const tl = gsap.timeline();
-    
-    tl.fromTo(pageRef.current, 
-      { opacity: 0 }, 
-      { opacity: 1, duration: 0.5 }
-    )
-    .fromTo(cardRef.current, 
-      { y: 50, opacity: 0 }, 
-      { y: 0, opacity: 1, duration: 0.6, ease: "back.out(1.7)" }
-    )
-    .fromTo(headerRef.current, 
-      { y: -20, opacity: 0 }, 
-      { y: 0, opacity: 1, duration: 0.4, ease: "power2.out" }
-    )
-    .fromTo(formRef.current.children, 
-      { y: 20, opacity: 0 }, 
-      { y: 0, opacity: 1, duration: 0.4, stagger: 0.1, ease: "power2.out" }
-    )
-    .fromTo(linkRef.current, 
-      { y: 20, opacity: 0 }, 
-      { y: 0, opacity: 1, duration: 0.4, ease: "power2.out" }
-    );
+
+    tl.fromTo(containerRef.current, { opacity: 0 }, { opacity: 1, duration: 0.5 })
+      .fromTo(cardRef.current, { y: 40, opacity: 0 }, { y: 0, opacity: 1, duration: 0.7, ease: "power3.out" }, "-=0.3")
+      .fromTo(headerRef.current, { y: -15, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5 }, "-=0.4")
+      .fromTo(formRef.current.children, { y: 20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5, stagger: 0.12 }, "-=0.3")
+      .fromTo(footerRef.current, { y: 15, opacity: 0 }, { y: 0, opacity: 1, duration: 0.4 }, "-=0.25");
   }, []);
-
-  const handleInputFocus = (e) => {
-    gsap.to(e.target, {
-      scale: 1.02,
-      duration: 0.2,
-      ease: "power2.out"
-    });
-  };
-
-  const handleInputBlur = (e) => {
-    gsap.to(e.target, {
-      scale: 1,
-      duration: 0.2,
-      ease: "power2.out"
-    });
-  };
-
-  const handleButtonHover = (e) => {
-    gsap.to(e.target, {
-      scale: 1.05,
-      duration: 0.2,
-      ease: "back.out(1.7)"
-    });
-  };
-
-  const handleButtonLeave = (e) => {
-    gsap.to(e.target, {
-      scale: 1,
-      duration: 0.2,
-      ease: "power2.out"
-    });
-  };
 
   async function handleSubmit(e) {
     e.preventDefault();
     setError("");
 
-    gsap.to(cardRef.current, {
-      scale: 0.98,
-      duration: 0.1,
-      yoyo: true,
-      repeat: 1
-    });
+    gsap.to(cardRef.current, { scale: 0.985, duration: 0.1, yoyo: true, repeat: 1 });
 
     try {
-      await handleLogin({
-        identifier,
-        password,
-      });
+      await handleLogin({ identifier, password });
 
       gsap.to(cardRef.current, {
-        scale: 1.1,
+        scale: 1.05,
         opacity: 0,
         duration: 0.5,
         ease: "back.in(1.7)",
@@ -102,9 +49,9 @@ function Login() {
     } catch (err) {
       console.error(err);
       setError(err.message || "Login failed. Please try again.");
-      
+
       gsap.to(cardRef.current, {
-        x: -10,
+        x: -8,
         duration: 0.1,
         repeat: 3,
         yoyo: true,
@@ -114,59 +61,55 @@ function Login() {
   }
 
   return (
-    <div className="login-page" ref={pageRef}>
-      <div className="animated-gradient-bg" />
-      <div className="bg-blob blob-1"></div>
-      <div className="bg-blob blob-2"></div>
-      
-      <div className="login-card glass-card" ref={cardRef}>
-        <div className="login-header" ref={headerRef}>
-          <h1>Welcome Back</h1>
-          <p>Sign in to your Laughify account</p>
+    <div className="auth-container" ref={containerRef}>
+      <div className="auth-card" ref={cardRef}>
+        <button className="back-button" onClick={() => navigate("/")}>
+          <ArrowLeft size={20} />
+        </button>
+
+        <div className="auth-header" ref={headerRef}>
+          <p className="auth-label">Welcome back</p>
+          <h1>Sign In</h1>
         </div>
 
-        <div className="tagline">
-          Keep a Straight Face or Lose It All
-        </div>
+        {error && <div className="error-message">{error}</div>}
 
-        {error && (
-          <div className="error-message">
-            {error}
+        <form className="auth-form" ref={formRef} onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label>Email or Username</label>
+            <input
+              type="text"
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
+              required
+            />
           </div>
-        )}
 
-        <form className="login-form" ref={formRef} onSubmit={handleSubmit}>
-          <input
-            type="text"
-            placeholder="Email or Username"
-            value={identifier}
-            onChange={(e) => setIdentifier(e.target.value)}
-            onFocus={handleInputFocus}
-            onBlur={handleInputBlur}
-            required
-          />
+          <div className="form-group">
+            <label>Password</label>
+            <div className="password-input-wrapper">
+              <input
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+              <button
+                type="button"
+                className="password-toggle"
+                onClick={() => setShowPassword(!showPassword)}
+              >
+                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+              </button>
+            </div>
+          </div>
 
-          <input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            onFocus={handleInputFocus}
-            onBlur={handleInputBlur}
-            required
-          />
-
-          <button 
-            type="submit" 
-            disabled={loading}
-            onMouseEnter={handleButtonHover}
-            onMouseLeave={handleButtonLeave}
-          >
+          <button type="submit" disabled={loading} className="submit-btn">
             {loading ? "Signing in..." : "Sign In"}
           </button>
         </form>
 
-        <div className="register-link" ref={linkRef}>
+        <div className="auth-footer" ref={footerRef}>
           Don't have an account?
           <Link to="/register">Create Account</Link>
         </div>

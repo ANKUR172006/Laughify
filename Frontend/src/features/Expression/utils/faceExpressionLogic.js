@@ -67,7 +67,7 @@ export const playBeep = (freq, duration) => {
   }
 };
 
-// Initialize Face Landmarker
+// Initialize Face Landmarker with balanced confidence (no false negatives)
 export const initializeFaceLandmarker = async () => {
   const vision = await FilesetResolver.forVisionTasks(
     "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm"
@@ -83,7 +83,7 @@ export const initializeFaceLandmarker = async () => {
     outputFaceLandmarks: true,
     outputFacialTransformationMatrixes: true,
     numFaces: 1,
-    minFaceDetectionConfidence: 0.5, // Higher for more accurate face detection
+    minFaceDetectionConfidence: 0.5, // Balanced (no false negatives)
     minFacePresenceConfidence: 0.5,
     minTrackingConfidence: 0.5
   });
@@ -145,41 +145,24 @@ export const renderFaceMesh = (ctx, canvas, landmarks, accentColor) => {
   ctx.restore();
 };
 
-// Improved eyes open detection
+// Solid eyes open detection (trigger if eyes are closed enough)
 const checkEyesOpen = (blendMap) => {
   const blinkLeft = blendMap.eyeBlinkLeft || 0;
   const blinkRight = blendMap.eyeBlinkRight || 0;
-  const squintLeft = blendMap.eyeSquintLeft || 0;
-  const squintRight = blendMap.eyeSquintRight || 0;
-  const wideLeft = blendMap.eyeWideLeft || 0;
-  const wideRight = blendMap.eyeWideRight || 0;
   
-  // Average blink and squint for both eyes
-  const avgBlink = (blinkLeft + blinkRight) / 2;
-  const avgSquint = (squintLeft + squintRight) / 2;
-  const avgWide = (wideLeft + wideRight) / 2;
-  
-  // Calculate eyes open score (0-1) - more lenient
-  let eyesOpenScore = 1 - avgBlink * 0.8 - avgSquint * 0.3;
-  eyesOpenScore += avgWide * 0.2;
-  eyesOpenScore = Math.max(0, Math.min(1, eyesOpenScore));
-  
-  // Eyes are considered closed only if both are really closed
-  const leftEyeClosed = blinkLeft > 0.85;
-  const rightEyeClosed = blinkRight > 0.85;
-  const bothEyesClosed = leftEyeClosed && rightEyeClosed;
+  // Eyes closed if either eye >0.6 OR both >0.5 (solid, no false negatives)
+  const eyesClosed = (blinkLeft > 0.6) || (blinkRight > 0.6) || ((blinkLeft > 0.5) && (blinkRight > 0.5));
   
   return {
-    isOpen: !bothEyesClosed && eyesOpenScore > 0.45, // Much more lenient
-    score: eyesOpenScore,
+    isOpen: !eyesClosed,
+    score: 1 - ((blinkLeft + blinkRight) / 2),
     leftBlink: blinkLeft,
     rightBlink: blinkRight
   };
 };
 
-// Improved eyes on screen detection - very lenient
+// Solid eyes on screen detection (trigger if looking away enough)
 const checkEyesOnScreen = (blendMap) => {
-  // Get all look directions for both eyes
   const lookInLeft = blendMap.eyeLookInLeft || 0;
   const lookInRight = blendMap.eyeLookInRight || 0;
   const lookOutLeft = blendMap.eyeLookOutLeft || 0;
@@ -189,40 +172,36 @@ const checkEyesOnScreen = (blendMap) => {
   const lookDownLeft = blendMap.eyeLookDownLeft || 0;
   const lookDownRight = blendMap.eyeLookDownRight || 0;
   
-  // Only trigger if any one direction is REALLY strong
   const maxLookLeft = Math.max(lookInLeft, lookOutLeft, lookUpLeft, lookDownLeft);
   const maxLookRight = Math.max(lookInRight, lookOutRight, lookUpRight, lookDownRight);
-  const bothLookingAway = maxLookLeft > 0.6 && maxLookRight > 0.6;
+  const avgLook = (maxLookLeft + maxLookRight) / 2;
+  
+  // Eyes off screen if either eye >0.4 (solid, effective)
+  const eyesOffScreen = (maxLookLeft > 0.4) || (maxLookRight > 0.4);
   
   return {
-    isOnScreen: !bothLookingAway, // Only count as off screen if both eyes are looking away strongly
-    score: bothLookingAway ? 0.3 : 1.0,
-    lookScore: 1 - (maxLookLeft + maxLookRight) / 2,
+    isOnScreen: !eyesOffScreen,
+    score: eyesOffScreen ? 0.3 : 1.0,
+    lookScore: 1 - avgLook,
     symmetryScore: 1
   };
 };
 
-// Calculate subtle smile intensity (0-100)
+// Robust smile intensity (0-100) - ignores eye/head movement
 const calculateSmileIntensity = (blendMap) => {
   const smileL = blendMap.mouthSmileLeft || 0;
   const smileR = blendMap.mouthSmileRight || 0;
   const dimplerL = blendMap.mouthDimpleLeft || 0;
   const dimplerR = blendMap.mouthDimpleRight || 0;
-  const cheekSquintL = blendMap.cheekSquintLeft || 0;
-  const cheekSquintR = blendMap.cheekSquintRight || 0;
   
-  // Combine multiple smile-related blendshapes for better detection
+  // Only use mouth smile and dimplers (avoids false positives from eye movement)
   const rawSmile = (
-    smileL * 0.4 + 
-    smileR * 0.4 + 
-    dimplerL * 0.1 + 
-    dimplerR * 0.1 + 
-    cheekSquintL * 0.05 + 
-    cheekSquintR * 0.05
+    (smileL + smileR) / 2 * 0.7 + 
+    (dimplerL + dimplerR) / 2 * 0.3
   );
   
-  // Scale to 0-100 with extra sensitivity for small smiles
-  const scaledSmile = Math.min(100, rawSmile * 120); // Multiplier to make small smiles show up
+  // Scale to 0-100 (robust, not too sensitive)
+  const scaledSmile = Math.min(100, rawSmile * 100);
   return scaledSmile;
 };
 

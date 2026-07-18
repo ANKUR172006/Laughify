@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import gsap from "gsap";
-import { RotateCcw, Home } from "lucide-react";
+import { RotateCcw, Home, Smile, EyeOff, UserMinus } from "lucide-react";
 import "../styles/LosePage.scss";
 
 export default function LosePage() {
@@ -15,25 +15,25 @@ export default function LosePage() {
     switch (reason) {
       case "smile":
         return {
-          emoji: "😂",
+          icon: <Smile size={80} strokeWidth={1.5} />,
           title: "You Smiled!",
           text: "You couldn't keep a straight face! A smile or laugh means game over!"
         };
       case "eyes-closed":
         return {
-          emoji: "😴",
+          icon: <EyeOff size={80} strokeWidth={1.5} />,
           title: "Eyes Closed Too Long!",
           text: "Your eyes were closed for over 2 seconds! Keep them on the screen!"
         };
       case "face-away":
         return {
-          emoji: "🙈",
+          icon: <UserMinus size={80} strokeWidth={1.5} />,
           title: "Where'd You Go?",
           text: "Your face was not in the camera view for too long! Stay in the frame!"
         };
       default:
         return {
-          emoji: "😞",
+          icon: <UserMinus size={80} strokeWidth={1.5} />,
           title: "Oops!",
           text: "Something went wrong! Let's try again!"
         };
@@ -53,19 +53,16 @@ export default function LosePage() {
 
   return (
     <div className="lose-page">
-      {/* Animated gradient background */}
-      <div className="animated-gradient-bg" />
-      
       <div className="lose-container">
         <motion.div
           ref={containerRef}
           className="lose-content glass-card"
         >
           <motion.div
-            className="lose-emoji"
+            className="lose-icon"
             animate={{
-              y: [0, -20, 0],
-              rotate: [0, -5, 5, 0]
+              y: [0, -16, 0],
+              rotate: [0, -4, 4, 0]
             }}
             transition={{
               duration: 3,
@@ -73,7 +70,7 @@ export default function LosePage() {
               ease: "easeInOut"
             }}
           >
-            {content.emoji}
+            {content.icon}
           </motion.div>
           
           <h1 className="lose-title gradient-text">
@@ -84,7 +81,7 @@ export default function LosePage() {
             {content.text}
           </p>
 
-          <div className="tagline" style={{ marginTop: "24px" }}>
+          <div className="tagline">
             Keep a Straight Face or Lose It All
           </div>
 
@@ -95,7 +92,7 @@ export default function LosePage() {
               className="retry-btn btn-primary" 
               onClick={() => navigate("/game")}
             >
-              <RotateCcw size={24} />
+              <RotateCcw size={22} />
               Try Again
             </motion.button>
             <motion.div
@@ -106,7 +103,7 @@ export default function LosePage() {
                 to="/" 
                 className="home-btn btn-secondary"
               >
-                <Home size={24} />
+                <Home size={22} />
                 Home
               </Link>
             </motion.div>

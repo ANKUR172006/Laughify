@@ -1,5 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import { ArrowLeft, Trophy, User } from "lucide-react";
 import { useAuthContext } from "../../auth/authContext";
 import { useGameContext } from "../context/GameContext";
 import "../styles/LeaderboardPage.scss";
@@ -17,21 +18,24 @@ export default function LeaderboardPage() {
   ].sort((a, b) => b.highestLevel - a.highestLevel).map((item, index) => ({ ...item, rank: index + 1 }));
 
   const badgeForRank = (rank) => {
-    if (rank === 1) return "🥇";
-    if (rank === 2) return "🥈";
-    if (rank === 3) return "🥉";
-    return "#";
+    if (rank === 1) return <Trophy size={20} />;
+    if (rank === 2) return <Trophy size={18} />;
+    if (rank === 3) return <Trophy size={16} />;
+    return <span className="rank-number">#{rank}</span>;
   };
 
   return (
     <div className="leaderboard-page">
       <div className="leaderboard-shell">
         <div className="leaderboard-topbar">
-          <Link to="/" className="leaderboard-back">← Home</Link>
+          <Link to="/" className="leaderboard-back">
+            <ArrowLeft size={20} />
+            Home
+          </Link>
           <div className="leaderboard-meta">Your Win Rate: {winRate}%</div>
         </div>
 
-        <div className="leaderboard-card">
+        <div className="leaderboard-card glass-card">
           <h1 className="leaderboard-title">Top 5 Players</h1>
           <div className="leaderboard-list">
             {leaderboard.map((player) => (
@@ -40,7 +44,9 @@ export default function LeaderboardPage() {
                 className={`leaderboard-row ${player.rank <= 3 ? "top-rank" : ""} ${player.username === (user?.username || "You") ? "current-user" : ""}`}
               >
                 <div className="rank-cell">{badgeForRank(player.rank)}</div>
-                <div className="avatar-cell">{player.avatar}</div>
+                <div className="avatar-cell">
+                  <User size={24} />
+                </div>
                 <div className="player-cell">
                   <span className="player-name">{player.username}</span>
                   <span className="player-subtitle">Rank #{player.rank}</span>

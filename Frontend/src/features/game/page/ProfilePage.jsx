@@ -1,5 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import { ArrowLeft, Trophy, User } from "lucide-react";
 import { useAuthContext } from "../../auth/authContext";
 import { useGameContext } from "../context/GameContext";
 import "../styles/ProfilePage.scss";
@@ -21,13 +22,16 @@ export default function ProfilePage() {
     <div className="profile-page">
       <div className="profile-shell">
         <div className="profile-topbar">
-          <Link to="/" className="profile-back">← Home</Link>
+          <Link to="/" className="profile-back">
+            <ArrowLeft size={20} />
+            Home
+          </Link>
           <Link to="/leaderboard" className="profile-link">Leaderboard</Link>
         </div>
 
-        <div className="profile-card">
+        <div className="profile-card glass-card">
           <div className="profile-avatar">
-            {user?.username?.slice(0, 1)?.toUpperCase() || "L"}
+            <User size={48} />
           </div>
           <h1 className="profile-name">{user?.username || "Laughify Player"}</h1>
           <p className="profile-email">{user?.email || "Ready to beat the next level"}</p>
@@ -57,7 +61,8 @@ export default function ProfilePage() {
               {displayAchievements.length ? (
                 displayAchievements.map((item) => (
                   <div key={item} className="achievement-pill">
-                    🏅 {item}
+                    <Trophy size={16} />
+                    {item}
                   </div>
                 ))
               ) : (

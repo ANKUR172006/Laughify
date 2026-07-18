@@ -19,13 +19,13 @@
 
 .leaderboard-back,
 .leaderboard-meta {
-  background: rgba(15,23,42,0.7);
-  border: 1px solid rgba(96,165,250,0.3);
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(96, 165, 250, 0.3);
   color: white;
   padding: 12px 20px;
   border-radius: 14px;
   text-decoration: none;
-  font-family: 'Orbitron', sans-serif;
+  font-family: "Orbitron", sans-serif;
   font-weight: 700;
   font-size: 14px;
   letter-spacing: 0.08em;
@@ -34,11 +34,11 @@
   align-items: center;
   gap: 8px;
   transition: all 0.3s;
-
-  &:hover {
-    background: rgba(37,99,235,0.25);
-    border-color: rgba(96,165,250,0.6);
-  }
+}
+.leaderboard-back:hover,
+.leaderboard-meta:hover {
+  background: rgba(37, 99, 235, 0.25);
+  border-color: rgba(96, 165, 250, 0.6);
 }
 
 .leaderboard-card {
@@ -48,7 +48,7 @@
 .leaderboard-title {
   text-align: center;
   color: white;
-  font-family: 'Orbitron', sans-serif;
+  font-family: "Orbitron", sans-serif;
   font-size: 36px;
   font-weight: 800;
   margin-bottom: 28px;
@@ -68,17 +68,17 @@
   gap: 16px;
   padding: 18px 22px;
   border-radius: 18px;
-  background: rgba(15,23,42,0.5);
-  border: 1px solid rgba(96,165,250,0.2);
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid rgba(96, 165, 250, 0.2);
 }
 
 .leaderboard-row.top-rank {
-  background: rgba(37,99,235,0.2);
-  border-color: rgba(96,165,250,0.35);
+  background: rgba(37, 99, 235, 0.2);
+  border-color: rgba(96, 165, 250, 0.35);
 }
 
 .leaderboard-row.current-user {
-  outline: 2px solid rgba(96,165,250,0.6);
+  outline: 2px solid rgba(96, 165, 250, 0.6);
 }
 
 .rank-cell {
@@ -92,7 +92,7 @@
 }
 
 .rank-number {
-  font-family: 'Orbitron', sans-serif;
+  font-family: "Orbitron", sans-serif;
   font-size: 16px;
 }
 
@@ -100,7 +100,7 @@
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: linear-gradient(135deg, rgba(37,99,235,0.35), rgba(96,165,250,0.35));
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.35), rgba(96, 165, 250, 0.35));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -115,14 +115,14 @@
 
 .player-name {
   color: white;
-  font-family: 'Space Grotesk', sans-serif;
+  font-family: "Space Grotesk", sans-serif;
   font-size: 18px;
   font-weight: 700;
 }
 
 .player-subtitle {
-  color: rgba(255,255,255,0.65);
-  font-family: 'Space Grotesk', sans-serif;
+  color: rgba(255, 255, 255, 0.65);
+  font-family: "Space Grotesk", sans-serif;
   font-size: 14px;
   font-weight: 600;
   letter-spacing: 0.05em;
@@ -131,7 +131,7 @@
 
 .level-cell {
   color: white;
-  font-family: 'Orbitron', sans-serif;
+  font-family: "Orbitron", sans-serif;
   font-size: 16px;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -142,18 +142,15 @@
   .leaderboard-page {
     padding: 20px;
   }
-
   .leaderboard-topbar {
     flex-direction: column;
     gap: 12px;
   }
-
   .leaderboard-row {
     grid-template-columns: 56px 56px 1fr;
   }
-
   .level-cell {
-    grid-column: 1 / -1;
+    grid-column: 1/-1;
     text-align: right;
   }
-}
+}/*# sourceMappingURL=LeaderboardPage.css.map */

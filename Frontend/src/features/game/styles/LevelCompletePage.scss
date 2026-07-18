@@ -7,12 +7,15 @@
   padding: 40px;
   position: relative;
   overflow: hidden;
+  z-index: 1;
 }
 
-.confetti {
+.sparkle {
   position: absolute;
   z-index: 1;
   pointer-events: none;
+  color: #60a5fa;
+  filter: drop-shadow(0 0 20px rgba(37,99,235,0.7));
 }
 
 .level-complete-container {
@@ -22,7 +25,7 @@
 }
 
 .level-complete-content {
-  padding: 70px 60px;
+  padding: 64px 56px;
   text-align: center;
 }
 
@@ -33,28 +36,32 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(96, 165, 250, 0.2));
+  background: linear-gradient(135deg, rgba(37,99,235,0.25), rgba(96,165,250,0.25));
   border-radius: 50%;
   color: #60a5fa;
-  box-shadow: 0 0 40px rgba(59, 130, 246, 0.3);
+  box-shadow: 0 0 60px rgba(37,99,235,0.4);
 }
 
 .level-complete-title {
-  font-family: 'Poppins', sans-serif;
-  font-size: 56px;
-  font-weight: 900;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 48px;
+  font-weight: 800;
   margin-bottom: 20px;
-  text-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  letter-spacing: -0.02em;
 }
 
 .tagline {
-  margin-bottom: 50px;
-  font-size: 20px !important;
+  margin-bottom: 48px;
+  font-size: 14px;
+  color: rgba(255,255,255,0.6);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-family: 'Space Grotesk', sans-serif;
 }
 
 .level-complete-buttons {
   display: flex;
-  gap: 24px;
+  gap: 20px;
   justify-content: center;
   align-items: center;
   
@@ -62,31 +69,31 @@
     display: flex;
     align-items: center;
     gap: 10px;
+    font-family: 'Orbitron', sans-serif;
     font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-size: 14px;
   }
 }
 
 /* Responsive */
 @media (max-width: 768px) {
   .level-complete-content {
-    padding: 50px 30px;
+    padding: 48px 32px;
   }
 
   .level-complete-title {
-    font-size: 40px;
+    font-size: 36px;
   }
   
   .trophy-icon {
     width: 100px;
     height: 100px;
-    
-    svg {
-      width: 60px;
-      height: 60px;
-    }
   }
 
   .level-complete-buttons {
     flex-direction: column;
+    gap: 16px;
   }
 }

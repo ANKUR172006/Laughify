@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import gsap from "gsap";
-import { Trophy, ArrowRight, Home } from "lucide-react";
+import { Trophy, ArrowRight, Home, Sparkles } from "lucide-react";
 import "../styles/LevelCompletePage.scss";
 
 export default function LevelCompletePage() {
@@ -18,50 +18,40 @@ export default function LevelCompletePage() {
     );
   }, []);
 
-  const confettiVariants = {
-    initial: { opacity: 0, scale: 0, y: 100, rotate: 0 },
+  const sparkVariants = {
+    initial: { opacity: 0, scale: 0, y: 40, rotate: 0 },
     animate: (i) => ({
-      opacity: 1,
-      scale: 1,
+      opacity: [0, 1, 0],
+      scale: [0, 1, 0.5],
       y: 0,
-      rotate: [0, 10, -10, 0],
+      rotate: [0, 20, -20, 0],
       transition: {
-        delay: i * 0.1,
-        duration: 0.8,
-        ease: "back.out(2)",
-        y: {
-          repeat: Infinity,
-          yoyo: true,
-          duration: 2 + i * 0.5,
-          ease: "sine.inOut"
-        }
+        delay: i * 0.2,
+        duration: 2 + i * 0.3,
+        ease: "easeInOut",
+        repeat: Infinity,
+        repeatDelay: 0.5
       }
     })
   };
 
-  const confettiEmojis = ["🎉", "✨", "🏆", "💫", "⭐", "🎊"];
-
   return (
     <div className="level-complete-page">
-      {/* Animated gradient background */}
-      <div className="animated-gradient-bg" />
-      
-      {/* Confetti */}
-      {confettiEmojis.map((emoji, i) => (
+      {/* Animated sparkles */}
+      {[...Array(8)].map((_, i) => (
         <motion.div
           key={i}
-          className="confetti"
+          className="sparkle"
           custom={i}
-          variants={confettiVariants}
+          variants={sparkVariants}
           initial="initial"
           animate="animate"
           style={{
-            left: `${10 + i * 15}%`,
-            top: `${10 + (i % 3) * 20}%`,
-            fontSize: `${2 + i * 0.5}rem`
+            left: `${10 + i * 12}%`,
+            top: `${10 + (i % 4) * 18}%`,
           }}
         >
-          {emoji}
+          <Sparkles size={24 + i * 4} />
         </motion.div>
       ))}
 
@@ -82,7 +72,7 @@ export default function LevelCompletePage() {
               ease: "easeInOut"
             }}
           >
-            <Trophy size={80} />
+            <Trophy size={80} strokeWidth={1.5} />
           </motion.div>
           
           <h1 className="level-complete-title gradient-text">
@@ -100,7 +90,7 @@ export default function LevelCompletePage() {
               className="next-level-btn btn-primary"
               onClick={() => navigate("/game")}
             >
-              <ArrowRight size={24} />
+              <ArrowRight size={22} />
               Next Level
             </motion.button>
             <motion.div
@@ -111,7 +101,7 @@ export default function LevelCompletePage() {
                 to="/" 
                 className="home-btn btn-secondary"
               >
-                <Home size={24} />
+                <Home size={22} />
                 Home
               </Link>
             </motion.div>

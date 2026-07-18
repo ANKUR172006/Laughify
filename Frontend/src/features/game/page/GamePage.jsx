@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import gsap from "gsap";
+import { ArrowLeft, Smile } from "lucide-react";
 import FaceExpression from "../../components/FaceExpression";
 import { useGameContext } from "../context/GameContext";
 import { useAuthContext } from "../../auth/authContext";
@@ -24,6 +25,7 @@ export default function GamePage() {
   const [gameState, setGameState] = useState({
     isPlaying: false,
   });
+  const [isTransitioning, setIsTransitioning] = useState(false);
 
   const videoRef = useRef(null);
   const eyesClosedTimerRef = useRef(null);
@@ -52,13 +54,18 @@ export default function GamePage() {
     fetchVideo();
   }, [currentLevel]);
 
-  // Entrance animations
+  // Entrance animations (when game page first loads)
   useEffect(() => {
     const tl = gsap.timeline();
     tl.fromTo(
+      ".back-btn",
+      { opacity: 0, x: -30 },
+      { opacity: 1, x: 0, duration: 0.8, ease: "power3.out" }
+    ).fromTo(
       levelRef.current,
       { opacity: 0, y: -30 },
-      { opacity: 1, y: 0, duration: 0.8, ease: "power3.out" }
+      { opacity: 1, y: 0, duration: 0.8, ease: "power3.out" },
+      "-=0.6"
     ).fromTo(
       faceCircleRef.current,
       { opacity: 0, scale: 0.8 },
@@ -87,43 +94,56 @@ export default function GamePage() {
 
   // Handle loss
   const handleLose = useCallback(async (reason) => {
-    if (hasCapturedPhoto.current) return;
+    if (hasCapturedPhoto.current || isTransitioning) return;
     hasCapturedPhoto.current = true;
-
+    setIsTransitioning(true);
     setGameState({ isPlaying: false });
     setIsGameActive(false);
-    
+
     // Stop video
     if (videoRef.current) {
       videoRef.current.pause();
     }
 
-    // Capture photo
-    await captureAndUploadPhoto();
+    // Capture photo (don't wait too long for it)
+    try {
+      await Promise.race([
+        captureAndUploadPhoto(),
+        new Promise(resolve => setTimeout(resolve, 1000))
+      ]);
+    } catch (err) {
+      console.error("Error uploading photo, continuing anyway", err);
+    }
 
-    // Navigate to lose page
+    // Navigate immediately
     navigate("/lose", { state: { reason } });
-  }, [setIsGameActive, captureAndUploadPhoto, navigate]);
+  }, [setIsGameActive, captureAndUploadPhoto, navigate, isTransitioning]);
 
   // Handle win (video ended)
   const handleVideoEnd = useCallback(async () => {
-    if (gameState.isPlaying) {
+    if (gameState.isPlaying && !isTransitioning) {
+      setIsTransitioning(true);
       setGameState({ isPlaying: false });
       setIsGameActive(false);
-      
+
       // Update highest level if user is logged in
       if (user) {
         try {
-          await updateHighestLevel(currentLevel + 1);
+          await Promise.race([
+            updateHighestLevel(currentLevel + 1),
+            new Promise(resolve => setTimeout(resolve, 1000))
+          ]);
         } catch (error) {
-          console.error("Failed to update highest level:", error);
+          console.error("Failed to update highest level, continuing anyway:", error);
         }
       }
-      
+
       unlockNextLevel();
+
+      // Navigate immediately
       navigate("/level-complete");
     }
-  }, [gameState.isPlaying, setIsGameActive, unlockNextLevel, navigate, currentLevel, user]);
+  }, [gameState.isPlaying, setIsGameActive, unlockNextLevel, navigate, currentLevel, user, isTransitioning]);
 
   // Update detection state
   const updateDetectionState = useCallback((state) => {
@@ -133,6 +153,7 @@ export default function GamePage() {
   // Start game
   const startGame = useCallback(() => {
     hasCapturedPhoto.current = false;
+    setIsTransitioning(false);
     setGameState({ isPlaying: true });
     setIsGameActive(true);
     if (videoRef.current) {
@@ -144,20 +165,30 @@ export default function GamePage() {
     gsap.to(startScreenRef.current, {
       opacity: 0,
       y: -50,
-      duration: 0.5,
+      duration: 0.4,
       ease: "power3.in",
       onComplete: () => gsap.set(startScreenRef.current, { display: "none" })
     });
 
+    // Hide UI elements (back button, level indicator) when game starts
+    gsap.to([levelRef.current, ".back-btn"], {
+      opacity: 0,
+      y: -30,
+      duration: 0.4,
+      ease: "power3.out"
+    });
+
+    // Show smile indicator (since we want it visible during gameplay)
     gsap.fromTo(
       smileIndicatorRef.current,
-      { opacity: 0, y: 50 },
-      { opacity: 1, y: 0, duration: 0.6, ease: "back.out(1.7)" }
+      { opacity: 0, y: 20 },
+      { opacity: 1, y: 0, duration: 0.4, ease: "back.out(1.7)" }
     );
   }, [setIsGameActive]);
 
   // Monitor loss conditions
   useEffect(() => {
+    console.log("Detection State: ", detectionState); // Debug log!
     if (!gameState.isPlaying) {
       if (eyesClosedTimerRef.current) clearTimeout(eyesClosedTimerRef.current);
       if (faceAwayTimerRef.current) clearTimeout(faceAwayTimerRef.current);
@@ -166,6 +197,7 @@ export default function GamePage() {
 
     // Condition 1: Smile > 20% - highest priority, immediate loss
     if (detectionState.smileIntensity > 20) {
+      console.log("Losing: smile too big (", detectionState.smileIntensity, "%)");
       handleLose("smile");
       return;
     }
@@ -173,26 +205,33 @@ export default function GamePage() {
     // Condition 2: Eyes closed > 2s - next priority
     if (!detectionState.eyesOpen?.isOpen) {
       if (!eyesClosedTimerRef.current) {
+        console.log("Starting eyes closed timer (2s)");
         eyesClosedTimerRef.current = setTimeout(() => {
+          console.log("Losing: eyes closed too long");
           handleLose("eyes-closed");
         }, 2000);
       }
     } else {
       if (eyesClosedTimerRef.current) {
+        console.log("Clearing eyes closed timer");
         clearTimeout(eyesClosedTimerRef.current);
         eyesClosedTimerRef.current = null;
       }
     }
 
-    // Condition 3: Face not detected > 2s - only if no other condition
-    if (!detectionState.faceDetected) {
+    // Condition 3: Face not detected OR eyes not on screen > 1.5s - solid logic
+    const isFaceAwayOrOffScreen = !detectionState.faceDetected || !detectionState.eyesOnScreen?.isOnScreen;
+    if (isFaceAwayOrOffScreen) {
       if (!faceAwayTimerRef.current) {
+        console.log("Starting face away/look away timer (1.5s)");
         faceAwayTimerRef.current = setTimeout(() => {
+          console.log("Losing: face away/look away too long");
           handleLose("face-away");
-        }, 2000);
+        }, 1500);
       }
     } else {
       if (faceAwayTimerRef.current) {
+        console.log("Clearing face away/look away timer");
         clearTimeout(faceAwayTimerRef.current);
         faceAwayTimerRef.current = null;
       }
@@ -203,16 +242,16 @@ export default function GamePage() {
     <div className="game-page">
       {/* Back button */}
       <button 
-        className="back-btn btn-secondary"
+        className="back-btn"
         onClick={() => navigate("/")}
       >
-        ← Back
+        <ArrowLeft size={24} />
       </button>
 
       {/* Level indicator */}
       <div ref={levelRef} className="level-indicator glass-card">
         <div className="level-number">Level {currentLevel}</div>
-        <div className="tagline" style={{ fontSize: "14px", marginTop: "6px" }}>
+        <div className="tagline">
           Keep a Straight Face or Lose It All
         </div>
       </div>
@@ -242,20 +281,20 @@ export default function GamePage() {
       )}
 
       {/* Start screen overlay */}
-      {!gameState.isPlaying && !isLoadingVideo && (
+      {!gameState.isPlaying && !isLoadingVideo && !isTransitioning && (
         <div ref={startScreenRef} className="start-screen-overlay">
           <div className="start-screen-content glass-card">
             <div className="level-preview">Level {currentLevel}</div>
             <div className="rules">
               <h3 className="rules-title">How to Win:</h3>
               <ul className="rules-list">
-                <li>• No smiles or laughter</li>
-                <li>• Keep your eyes open</li>
-                <li>• Stay in the camera's view</li>
+                <li>No smiles or laughter</li>
+                <li>Keep your eyes open</li>
+                <li>Stay in the camera's view</li>
               </ul>
             </div>
             <button className="start-game-btn btn-primary" onClick={startGame}>
-              🚀 Start Level
+              Start Level
             </button>
           </div>
         </div>
@@ -264,7 +303,10 @@ export default function GamePage() {
       {/* Smile indicator */}
       {gameState.isPlaying && (
         <div ref={smileIndicatorRef} className="smile-indicator glass-card">
-          <div className="smile-label">Smile Meter</div>
+          <div className="smile-label">
+            <Smile size={20} />
+            Smile Meter
+          </div>
           <div className="smile-bar-container">
             <div 
               className={`smile-bar ${detectionState.smileIntensity > 20 ? 'danger' : ''}`}
