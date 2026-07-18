@@ -83,9 +83,9 @@ export const initializeFaceLandmarker = async () => {
     outputFaceLandmarks: true,
     outputFacialTransformationMatrixes: true,
     numFaces: 1,
-    minFaceDetectionConfidence: 0.5, // Balanced (no false negatives)
-    minFacePresenceConfidence: 0.5,
-    minTrackingConfidence: 0.5
+    minFaceDetectionConfidence: 0.7, // Balanced (no false negatives)
+    minFacePresenceConfidence: 0.7,
+    minTrackingConfidence: 0.7
   });
 };
 
@@ -150,8 +150,8 @@ const checkEyesOpen = (blendMap) => {
   const blinkLeft = blendMap.eyeBlinkLeft || 0;
   const blinkRight = blendMap.eyeBlinkRight || 0;
   
-  // Eyes closed if either eye >0.6 OR both >0.5 (solid, no false negatives)
-  const eyesClosed = (blinkLeft > 0.6) || (blinkRight > 0.6) || ((blinkLeft > 0.5) && (blinkRight > 0.5));
+  // Eyes closed if either eye >0.7 OR both >0.6 (solid, no false negatives)
+  const eyesClosed = (blinkLeft > 0.7) || (blinkRight > 0.7) || ((blinkLeft > 0.6) && (blinkRight > 0.6));
   
   return {
     isOpen: !eyesClosed,
@@ -176,8 +176,8 @@ const checkEyesOnScreen = (blendMap) => {
   const maxLookRight = Math.max(lookInRight, lookOutRight, lookUpRight, lookDownRight);
   const avgLook = (maxLookLeft + maxLookRight) / 2;
   
-  // Eyes off screen if either eye >0.4 (solid, effective)
-  const eyesOffScreen = (maxLookLeft > 0.4) || (maxLookRight > 0.4);
+  // Eyes off screen if either eye >0.5 (solid, effective)
+  const eyesOffScreen = (maxLookLeft > 0.5) || (maxLookRight > 0.5);
   
   return {
     isOnScreen: !eyesOffScreen,

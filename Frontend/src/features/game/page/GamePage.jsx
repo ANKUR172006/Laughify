@@ -195,8 +195,8 @@ export default function GamePage() {
       return;
     }
 
-    // Condition 1: Smile > 20% - highest priority, immediate loss
-    if (detectionState.smileIntensity > 20) {
+    // Condition 1: Smile > 30% - highest priority, immediate loss
+    if (detectionState.smileIntensity > 30) {
       console.log("Losing: smile too big (", detectionState.smileIntensity, "%)");
       handleLose("smile");
       return;
@@ -219,15 +219,15 @@ export default function GamePage() {
       }
     }
 
-    // Condition 3: Face not detected OR eyes not on screen > 1.5s - solid logic
+    // Condition 3: Face not detected OR eyes not on screen > 2.5s - solid logic
     const isFaceAwayOrOffScreen = !detectionState.faceDetected || !detectionState.eyesOnScreen?.isOnScreen;
     if (isFaceAwayOrOffScreen) {
       if (!faceAwayTimerRef.current) {
-        console.log("Starting face away/look away timer (1.5s)");
+        console.log("Starting face away/look away timer (2.5s)");
         faceAwayTimerRef.current = setTimeout(() => {
           console.log("Losing: face away/look away too long");
           handleLose("face-away");
-        }, 1500);
+        }, 2500);
       }
     } else {
       if (faceAwayTimerRef.current) {
@@ -309,7 +309,7 @@ export default function GamePage() {
           </div>
           <div className="smile-bar-container">
             <div 
-              className={`smile-bar ${detectionState.smileIntensity > 20 ? 'danger' : ''}`}
+              className={`smile-bar ${detectionState.smileIntensity > 30 ? 'danger' : ''}`}
               style={{ width: `${detectionState.smileIntensity}%` }}
             />
           </div>
