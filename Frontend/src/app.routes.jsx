@@ -28,27 +28,27 @@ export const router = createBrowserRouter([
     children: [
       {
         path: "/",
-        element: <HomePage />,
+        element: <Protected><HomePage /></Protected>,
       },
       {
         path: "/game",
-        element: <GamePage />,
+        element: <Protected><GamePage /></Protected>,
       },
       {
         path: "/lose",
-        element: <LosePage />,
+        element: <Protected><LosePage /></Protected>,
       },
       {
         path: "/level-complete",
-        element: <LevelCompletePage />,
+        element: <Protected><LevelCompletePage /></Protected>,
       },
       {
         path: "/profile",
-        element: <ProfilePage />,
+        element: <Protected><ProfilePage /></Protected>,
       },
       {
         path: "/leaderboard",
-        element: <LeaderboardPage />,
+        element: <Protected><LeaderboardPage /></Protected>,
       },
       {
         path: "/login",
