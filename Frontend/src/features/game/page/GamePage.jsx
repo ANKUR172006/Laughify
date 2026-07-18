@@ -195,21 +195,21 @@ export default function GamePage() {
       return;
     }
 
-    // Condition 1: Smile > 30% - highest priority, immediate loss
-    if (detectionState.smileIntensity > 30) {
+    // Condition 1: Smile > 40% - highest priority, immediate loss
+    if (detectionState.smileIntensity > 40) {
       console.log("Losing: smile too big (", detectionState.smileIntensity, "%)");
       handleLose("smile");
       return;
     }
 
-    // Condition 2: Eyes closed > 2s - next priority
+    // Condition 2: Eyes closed > 4s - next priority
     if (!detectionState.eyesOpen?.isOpen) {
       if (!eyesClosedTimerRef.current) {
-        console.log("Starting eyes closed timer (2s)");
+        console.log("Starting eyes closed timer (4s)");
         eyesClosedTimerRef.current = setTimeout(() => {
           console.log("Losing: eyes closed too long");
           handleLose("eyes-closed");
-        }, 2000);
+        }, 4000);
       }
     } else {
       if (eyesClosedTimerRef.current) {
@@ -219,15 +219,15 @@ export default function GamePage() {
       }
     }
 
-    // Condition 3: Face not detected OR eyes not on screen > 2.5s - solid logic
+    // Condition 3: Face not detected OR eyes not on screen > 5s - solid logic
     const isFaceAwayOrOffScreen = !detectionState.faceDetected || !detectionState.eyesOnScreen?.isOnScreen;
     if (isFaceAwayOrOffScreen) {
       if (!faceAwayTimerRef.current) {
-        console.log("Starting face away/look away timer (2.5s)");
+        console.log("Starting face away/look away timer (5s)");
         faceAwayTimerRef.current = setTimeout(() => {
           console.log("Losing: face away/look away too long");
           handleLose("face-away");
-        }, 2500);
+        }, 5000);
       }
     } else {
       if (faceAwayTimerRef.current) {
@@ -309,7 +309,7 @@ export default function GamePage() {
           </div>
           <div className="smile-bar-container">
             <div 
-              className={`smile-bar ${detectionState.smileIntensity > 30 ? 'danger' : ''}`}
+              className={`smile-bar ${detectionState.smileIntensity > 40 ? 'danger' : ''}`}
               style={{ width: `${detectionState.smileIntensity}%` }}
             />
           </div>
