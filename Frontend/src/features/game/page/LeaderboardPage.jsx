@@ -1,21 +1,28 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, Trophy, User } from "lucide-react";
 import { useAuthContext } from "../../auth/authContext";
-import { useGameContext } from "../context/GameContext";
+import { getLeaderboard } from "../service/game.api";
 import "../styles/LeaderboardPage.scss";
 
 export default function LeaderboardPage() {
   const { user } = useAuthContext();
-  const { highestLevel, winRate } = useGameContext();
+  const [leaderboard, setLeaderboard] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const leaderboard = [
-    { rank: 1, username: "PokerQueen", avatar: "P", highestLevel: 12 },
-    { rank: 2, username: "StoneFace", avatar: "S", highestLevel: 10 },
-    { rank: 3, username: "NoSmilePro", avatar: "N", highestLevel: 9 },
-    { rank: 4, username: user?.username || "You", avatar: user?.username?.slice(0, 1)?.toUpperCase() || "Y", highestLevel },
-    { rank: 5, username: "GiggleGuard", avatar: "G", highestLevel: 7 },
-  ].sort((a, b) => b.highestLevel - a.highestLevel).map((item, index) => ({ ...item, rank: index + 1 }));
+  useEffect(() => {
+    async function fetchLeaderboard() {
+      try {
+        const data = await getLeaderboard();
+        setLeaderboard(data.leaderboard);
+      } catch (error) {
+        console.error("Error fetching leaderboard:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchLeaderboard();
+  }, []);
 
   const badgeForRank = (rank) => {
     if (rank === 1) return <Trophy size={20} />;
@@ -23,6 +30,14 @@ export default function LeaderboardPage() {
     if (rank === 3) return <Trophy size={16} />;
     return <span className="rank-number">#{rank}</span>;
   };
+
+  if (loading) {
+    return (
+      <div className="leaderboard-page">
+        <div className="loading-screen">Loading...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="leaderboard-page">
@@ -32,24 +47,24 @@ export default function LeaderboardPage() {
             <ArrowLeft size={20} />
             Home
           </Link>
-          <div className="leaderboard-meta">Your Win Rate: {winRate}%</div>
+          <div className="leaderboard-meta">We bring smile on your faces</div>
         </div>
 
         <div className="leaderboard-card glass-card">
-          <h1 className="leaderboard-title">Top 5 Players</h1>
+          <h1 className="leaderboard-title">Top Players</h1>
           <div className="leaderboard-list">
-            {leaderboard.map((player) => (
+            {leaderboard.map((player, index) => (
               <div
-                key={`${player.username}-${player.rank}`}
-                className={`leaderboard-row ${player.rank <= 3 ? "top-rank" : ""} ${player.username === (user?.username || "You") ? "current-user" : ""}`}
+                key={player._id || index}
+                className={`leaderboard-row ${index + 1 <= 3 ? "top-rank" : ""} ${player.username === user?.username ? "current-user" : ""}`}
               >
-                <div className="rank-cell">{badgeForRank(player.rank)}</div>
+                <div className="rank-cell">{badgeForRank(index + 1)}</div>
                 <div className="avatar-cell">
                   <User size={24} />
                 </div>
                 <div className="player-cell">
                   <span className="player-name">{player.username}</span>
-                  <span className="player-subtitle">Rank #{player.rank}</span>
+                  <span className="player-subtitle">Rank #{index + 1}</span>
                 </div>
                 <div className="level-cell">Level {player.highestLevel}</div>
               </div>

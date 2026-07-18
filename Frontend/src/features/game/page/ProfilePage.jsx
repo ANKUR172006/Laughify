@@ -1,22 +1,34 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Trophy, User } from "lucide-react";
-import { useAuthContext } from "../../auth/authContext";
-import { useGameContext } from "../context/GameContext";
+import { ArrowLeft, Smile, User } from "lucide-react";
+import { getProfile } from "../service/game.api";
 import "../styles/ProfilePage.scss";
 
 export default function ProfilePage() {
-  const { user } = useAuthContext();
-  const { highestLevel, currentLevel, gamesPlayed, winRate, achievements, wins } = useGameContext();
+  const [profile, setProfile] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  const derivedAchievements = [
-    highestLevel >= 2 ? "Level Breaker" : null,
-    wins >= 1 ? "First Victory" : null,
-    winRate >= 70 && gamesPlayed >= 3 ? "Sharp Face" : null,
-    gamesPlayed >= 5 ? "Committed Player" : null,
-  ].filter(Boolean);
+  useEffect(() => {
+    async function fetchProfile() {
+      try {
+        const data = await getProfile();
+        setProfile(data.user);
+      } catch (error) {
+        console.error("Error fetching profile:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchProfile();
+  }, []);
 
-  const displayAchievements = achievements.length ? achievements : derivedAchievements;
+  if (loading) {
+    return (
+      <div className="profile-page">
+        <div className="loading-screen">Loading...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="profile-page">
@@ -31,42 +43,42 @@ export default function ProfilePage() {
 
         <div className="profile-card glass-card">
           <div className="profile-avatar">
-            <User size={48} />
+            {profile?.smilePhotos?.length > 0 ? (
+              <img src={profile.smilePhotos[profile.smilePhotos.length -1].url} alt="Profile" className="profile-avatar-img" />
+            ) : (
+              <User size={48} />
+            )}
           </div>
-          <h1 className="profile-name">{user?.username || "Laughify Player"}</h1>
-          <p className="profile-email">{user?.email || "Ready to beat the next level"}</p>
+          <h1 className="profile-name">{profile?.username || "Laughify Player"}</h1>
+          <p className="profile-email">{profile?.email || "Ready to beat the next level"}</p>
+          <p className="profile-tagline">We bring smile on your faces</p>
 
           <div className="profile-stats">
             <div className="profile-stat">
-              <span className="profile-value">{highestLevel}</span>
+              <span className="profile-value">{profile?.highestLevel || 1}</span>
               <span className="profile-label">Highest Level</span>
             </div>
             <div className="profile-stat">
-              <span className="profile-value">{currentLevel}</span>
-              <span className="profile-label">Current Level</span>
-            </div>
-            <div className="profile-stat">
-              <span className="profile-value">{gamesPlayed}</span>
-              <span className="profile-label">Games Played</span>
-            </div>
-            <div className="profile-stat">
-              <span className="profile-value">{winRate}%</span>
-              <span className="profile-label">Win Rate</span>
+              <span className="profile-value">{profile?.smilePhotos?.length || 0}</span>
+              <span className="profile-label">Laugh Captured</span>
             </div>
           </div>
 
-          <div className="achievement-section">
-            <h2 className="achievement-title">Achievements</h2>
-            <div className="achievement-grid">
-              {displayAchievements.length ? (
-                displayAchievements.map((item) => (
-                  <div key={item} className="achievement-pill">
-                    <Trophy size={16} />
-                    {item}
+          <div className="smile-photos-section">
+            <h2 className="smile-photos-title">
+              <Smile size={20} />
+              Your Laugh Gallery
+            </h2>
+            <div className="smile-photos-grid">
+              {profile?.smilePhotos?.length > 0 ? (
+                profile.smilePhotos.slice().reverse().map((photo, index) => (
+                  <div key={index} className="smile-photo-card">
+                    <img src={photo.url} alt={`Laugh at level ${photo.level}`} className="smile-photo" />
+                    <div className="smile-photo-level">Level {photo.level}</div>
                   </div>
                 ))
               ) : (
-                <div className="achievement-empty">Play more levels to unlock achievements.</div>
+                <div className="smile-photos-empty">No laughs captured yet! Start playing to capture your smile.</div>
               )}
             </div>
           </div>

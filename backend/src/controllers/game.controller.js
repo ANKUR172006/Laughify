@@ -84,14 +84,25 @@ const listVideos = async (req, res) => {
 
 const uploadUserPhoto = async (req, res) => {
   try {
-    const { level, imageData, userId } = req.body;
+    const { level, imageData } = req.body;
+    const userId = req.user.id;
     
     // imageData is base64 encoded
     const uploadResult = await imagekit.upload({
       file: imageData, // required
       fileName: `user-laugh-level-${level}-${Date.now()}.jpg`, // required
-      folder: "/laughify-user-photos",
+      folder: "/Laughing-Faces",
     });
+
+    // Add photo to user's smilePhotos
+    const user = await userModel.findById(userId);
+    if (user) {
+      user.smilePhotos.push({
+        url: uploadResult.url,
+        level: level
+      });
+      await user.save();
+    }
 
     res.status(200).json({
       success: true,
@@ -104,9 +115,48 @@ const uploadUserPhoto = async (req, res) => {
   }
 };
 
+const getProfile = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const user = await userModel.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    res.status(200).json({
+      success: true,
+      user: {
+        username: user.username,
+        email: user.email,
+        highestLevel: user.highestLevel,
+        smilePhotos: user.smilePhotos
+      }
+    });
+  } catch (error) {
+    console.error("Error fetching profile:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+const getLeaderboard = async (req, res) => {
+  try {
+    // Get users sorted by highestLevel descending
+    const users = await userModel.find({}, "username highestLevel").sort({ highestLevel: -1 }).limit(100);
+    res.status(200).json({
+      success: true,
+      leaderboard: users
+    });
+  } catch (error) {
+    console.error("Error fetching leaderboard:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 module.exports = {
   getVideoByLevel,
   listVideos,
   uploadUserPhoto,
-  updateHighestLevel
+  updateHighestLevel,
+  getProfile,
+  getLeaderboard
 };

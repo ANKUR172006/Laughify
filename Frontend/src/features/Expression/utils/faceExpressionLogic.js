@@ -150,8 +150,10 @@ const checkEyesOpen = (blendMap) => {
   const blinkLeft = blendMap.eyeBlinkLeft || 0;
   const blinkRight = blendMap.eyeBlinkRight || 0;
   
-  // Eyes closed if either eye >0.85 OR both >0.75 (very relaxed)
-  const eyesClosed = (blinkLeft > 0.85) || (blinkRight > 0.85) || ((blinkLeft > 0.75) && (blinkRight > 0.75));
+  console.log("DEBUG - eyeBlinkLeft:", blinkLeft, "eyeBlinkRight:", blinkRight);
+  
+  // Eyes closed if either eye >0.7 OR both >0.6 (more sensitive now)
+  const eyesClosed = (blinkLeft > 0.7) || (blinkRight > 0.7) || ((blinkLeft > 0.6) && (blinkRight > 0.6));
   
   return {
     isOpen: !eyesClosed,
@@ -161,29 +163,92 @@ const checkEyesOpen = (blendMap) => {
   };
 };
 
-// Solid eyes on screen detection (trigger if looking away enough)
-const checkEyesOnScreen = (blendMap) => {
+// Extract head pose (yaw/pitch/roll) from transformation matrix
+const extractHeadPose = (transformationMatrix) => {
+  if (!transformationMatrix || transformationMatrix.length < 16) {
+    return { yaw: 0, pitch: 0, roll: 0 };
+  }
+
+  // MediaPipe's 4x4 transformation matrix format (column-major)
+  const m = transformationMatrix;
+  
+  // Calculate yaw (left-right rotation)
+  let yaw = Math.atan2(m[4], m[0]); // Using rotation components
+  
+  // Calculate pitch (up-down rotation)
+  let pitch = Math.asin(-m[8]);
+  
+  // Calculate roll (tilt)
+  let roll = Math.atan2(m[9], m[10]);
+  
+  // Convert radians to degrees for easier interpretation
+  yaw = yaw * (180 / Math.PI);
+  pitch = pitch * (180 / Math.PI);
+  roll = roll * (180 / Math.PI);
+  
+  return { yaw, pitch, roll };
+};
+
+// Check if key landmarks are within the frame bounds
+const checkLandmarksInFrame = (landmarks, margin = 0.1) => {
+  if (!landmarks) return false;
+  
+  // Key landmarks to check: nose tip (1), left eye outer corner (33), right eye outer corner (263)
+  const keyLandmarks = [
+    landmarks[1],  // Nose tip
+    landmarks[33], // Left eye outer
+    landmarks[263] // Right eye outer
+  ];
+  
+  // Check if all key landmarks are within [margin, 1-margin] in x and y
+  for (let lm of keyLandmarks) {
+    if (!lm) return false;
+    if (lm.x < margin || lm.x > (1 - margin) || lm.y < margin || lm.y > (1 - margin)) {
+      return false;
+    }
+  }
+  
+  return true;
+};
+
+// Improved eyes/face on screen detection using both head pose and landmarks
+const checkEyesOnScreen = (blendMap, landmarks, transformationMatrix) => {
+  // 1. Check landmarks are in frame
+  const landmarksValid = checkLandmarksInFrame(landmarks);
+  
+  // 2. Check head pose (yaw and pitch)
+  const headPose = extractHeadPose(transformationMatrix);
+  const maxYaw = 40; // degrees - allow up to 40deg left/right
+  const maxPitch = 35; // degrees - allow up to 35deg up/down
+  const headPoseValid = Math.abs(headPose.yaw) < maxYaw && Math.abs(headPose.pitch) < maxPitch;
+  
+  // 3. Still use eyeLook blendshapes as backup, but more relaxed
   const lookInLeft = blendMap.eyeLookInLeft || 0;
   const lookInRight = blendMap.eyeLookInRight || 0;
   const lookOutLeft = blendMap.eyeLookOutLeft || 0;
   const lookOutRight = blendMap.eyeLookOutRight || 0;
-  const lookUpLeft = blendMap.eyeLookUpLeft || 0;
-  const lookUpRight = blendMap.eyeLookUpRight || 0;
-  const lookDownLeft = blendMap.eyeLookDownLeft || 0;
-  const lookDownRight = blendMap.eyeLookDownRight || 0;
+  const maxLookLeft = Math.max(lookInLeft, lookOutLeft);
+  const maxLookRight = Math.max(lookInRight, lookOutRight);
+  const gazeValid = maxLookLeft < 0.9 && maxLookRight < 0.9;
   
-  const maxLookLeft = Math.max(lookInLeft, lookOutLeft, lookUpLeft, lookDownLeft);
-  const maxLookRight = Math.max(lookInRight, lookOutRight, lookUpRight, lookDownRight);
-  const avgLook = (maxLookLeft + maxLookRight) / 2;
+  // Combine all checks
+  const isOnScreen = landmarksValid && headPoseValid && gazeValid;
   
-  // Eyes off screen if either eye >0.7 (very relaxed)
-  const eyesOffScreen = (maxLookLeft > 0.7) || (maxLookRight > 0.7);
+  console.log("DEBUG - Face on screen check:", {
+    landmarksValid,
+    headPoseValid,
+    gazeValid,
+    yaw: headPose.yaw,
+    pitch: headPose.pitch
+  });
   
   return {
-    isOnScreen: !eyesOffScreen,
-    score: eyesOffScreen ? 0.3 : 1.0,
-    lookScore: 1 - avgLook,
-    symmetryScore: 1
+    isOnScreen,
+    score: isOnScreen ? 1.0 : 0.3,
+    yaw: headPose.yaw,
+    pitch: headPose.pitch,
+    landmarksValid,
+    gazeValid
   };
 };
 
@@ -375,7 +440,8 @@ export const processFaceDetection = (result, calibrationData, smoothedEmotionsRe
   // Calculate additional features
   const smileIntensity = calculateSmileIntensity(blendMap);
   const eyesOpenResult = checkEyesOpen(blendMap);
-  const eyesOnScreenResult = checkEyesOnScreen(blendMap);
+  const transformationMatrix = result.faceTransformationMatrixes?.[0];
+  const eyesOnScreenResult = checkEyesOnScreen(blendMap, landmarks, transformationMatrix);
 
   return {
     expression,

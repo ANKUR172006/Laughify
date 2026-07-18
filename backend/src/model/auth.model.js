@@ -25,7 +25,15 @@ const mongoose=require("mongoose");
     highestLevel: {
         type: Number,
         default: 1
-    }
+    },
+    smilePhotos: [{
+        url: String,
+        level: Number,
+        createdAt: {
+            type: Date,
+            default: Date.now
+        }
+    }]
 }, {
     timestamps: true
 });

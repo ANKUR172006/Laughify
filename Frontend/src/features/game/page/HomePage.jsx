@@ -81,6 +81,8 @@ const HomePage = () => {
           <div className="nav-actions">
             {user ? (
               <div className="user-section">
+                <Link to="/profile" className="nav-link">Profile</Link>
+                <Link to="/leaderboard" className="nav-link">Leaderboard</Link>
                 <div className="user-info">
                   <div className="avatar">
                     <User size={20} />
@@ -111,6 +113,9 @@ const HomePage = () => {
             <span className="gradient-text">LAUGHIFY</span>
           </h1>
           <p className="hero-subtitle" ref={subtitleRef}>
+            We bring smile on your faces
+          </p>
+          <p className="hero-subtitle-secondary">
             Keep a straight face or lose it all
           </p>
           <Link ref={playBtnRef} to="/game" className="play-button">

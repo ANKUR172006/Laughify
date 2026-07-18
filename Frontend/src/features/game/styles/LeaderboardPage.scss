@@ -138,6 +138,16 @@
   text-transform: uppercase;
 }
 
+.loading-screen {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 50vh;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 20px;
+  color: white;
+}
+
 @media (max-width: 768px) {
   .leaderboard-page {
     padding: 20px;

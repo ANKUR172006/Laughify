@@ -10,12 +10,22 @@ export async function getVideoByLevel(level) {
   return response.data;
 }
 
-export async function uploadUserPhoto(level, imageData, userId) {
-  const response = await api.post("/photo", { level, imageData, userId });
+export async function uploadUserPhoto(level, imageData) {
+  const response = await api.post("/photo", { level, imageData });
   return response.data;
 }
 
 export async function updateHighestLevel(level) {
   const response = await api.post("/highest-level", { level });
+  return response.data;
+}
+
+export async function getProfile() {
+  const response = await api.get("/profile");
+  return response.data;
+}
+
+export async function getLeaderboard() {
+  const response = await api.get("/leaderboard");
   return response.data;
 }

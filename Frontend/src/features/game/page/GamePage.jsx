@@ -85,12 +85,12 @@ export default function GamePage() {
         const ctx = canvas.getContext('2d');
         ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
         const imageData = canvas.toDataURL('image/jpeg', 0.8);
-        await uploadUserPhoto(currentLevel, imageData, user?._id);
+        await uploadUserPhoto(currentLevel, imageData);
       }
     } catch (error) {
       console.error("Error capturing photo:", error);
     }
-  }, [currentLevel, user]);
+  }, [currentLevel]);
 
   // Handle loss
   const handleLose = useCallback(async (reason) => {
@@ -202,14 +202,14 @@ export default function GamePage() {
       return;
     }
 
-    // Condition 2: Eyes closed > 4s - next priority
+    // Condition 2: Eyes closed > 2.5s - next priority
     if (!detectionState.eyesOpen?.isOpen) {
       if (!eyesClosedTimerRef.current) {
-        console.log("Starting eyes closed timer (4s)");
+        console.log("Starting eyes closed timer (2.5s)");
         eyesClosedTimerRef.current = setTimeout(() => {
           console.log("Losing: eyes closed too long");
           handleLose("eyes-closed");
-        }, 4000);
+        }, 2500);
       }
     } else {
       if (eyesClosedTimerRef.current) {
