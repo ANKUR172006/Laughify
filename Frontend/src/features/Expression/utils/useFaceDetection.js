@@ -50,26 +50,31 @@ export const useFaceDetection = () => {
     async function initialize() {
       try {
         setLoadingModel(true);
-        streamRef.current = await navigator.mediaDevices.getUserMedia({
+        
+        // Load model and camera in parallel to save time!
+        const modelPromise = initializeFaceLandmarker();
+        const cameraPromise = navigator.mediaDevices.getUserMedia({
           video: {
-            width: { ideal: 640 }, // Lower resolution for mobile performance
-            height: { ideal: 480 },
+            width: { ideal: 480 }, // Even lower resolution for faster mobile loading
+            height: { ideal: 360 },
             facingMode: "user"
           },
         });
 
+        // Wait for both to finish
+        const [model, stream] = await Promise.all([modelPromise, cameraPromise]);
+        faceLandmarkerRef.current = model;
+        streamRef.current = stream;
+
         if (videoRef.current) {
-          videoRef.current.srcObject = streamRef.current;
+          videoRef.current.srcObject = stream;
           videoRef.current.muted = true; // Muted for autoplay on mobile
           videoRef.current.playsInline = true; // Critical for iOS
-          await new Promise((resolve) => {
-            videoRef.current.onloadedmetadata = () => resolve();
-          });
-          await videoRef.current.play();
+          // Don't wait for onloadedmetadata, just play immediately (faster!)
+          videoRef.current.play().catch(e => console.warn("Video play failed:", e));
           setCameraActive(true);
         }
 
-        faceLandmarkerRef.current = await initializeFaceLandmarker();
         setLoadingModel(false);
         detect();
       } catch (err) {
@@ -87,9 +92,9 @@ export const useFaceDetection = () => {
         return;
       }
 
-      // Throttle detection to ~20fps to reduce mobile load (every 50ms)
+      // Throttle detection to ~15fps to reduce mobile load (every ~66ms)
       const now = performance.now();
-      if (now - lastFrameTimeRef.current < 50) {
+      if (now - lastFrameTimeRef.current < 66) {
         animationRef.current = requestAnimationFrame(detect);
         return;
       }
