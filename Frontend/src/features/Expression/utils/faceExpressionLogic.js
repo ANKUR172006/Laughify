@@ -67,7 +67,7 @@ export const playBeep = (freq, duration) => {
   }
 };
 
-// Initialize Face Landmarker with balanced confidence (no false negatives)
+// Initialize Face Landmarker optimized for mobile performance
 export const initializeFaceLandmarker = async () => {
   const vision = await FilesetResolver.forVisionTasks(
     "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm"
@@ -83,9 +83,9 @@ export const initializeFaceLandmarker = async () => {
     outputFaceLandmarks: true,
     outputFacialTransformationMatrixes: true,
     numFaces: 1,
-    minFaceDetectionConfidence: 0.5, // Balanced (no false negatives)
-    minFacePresenceConfidence: 0.5,
-    minTrackingConfidence: 0.5
+    minFaceDetectionConfidence: 0.35, // Lower for better mobile detection
+    minFacePresenceConfidence: 0.35,
+    minTrackingConfidence: 0.35
   });
 };
 

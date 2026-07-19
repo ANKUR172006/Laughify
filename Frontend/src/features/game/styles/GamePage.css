@@ -229,41 +229,115 @@
 /* Media queries for mobile */
 @media (max-width: 768px) {
   .face-circle {
-    width: 120px;
-    height: 120px;
-    top: 16px;
-    right: 16px;
+    width: 100px;
+    height: 100px;
+    top: 12px;
+    right: 12px;
   }
   .level-indicator {
-    top: 16px;
-    padding: 12px 24px;
+    top: 12px;
+    padding: 10px 20px;
   }
   .level-number {
-    font-size: 18px;
+    font-size: 16px;
   }
   .back-btn {
-    top: 16px;
-    left: 16px;
+    top: 12px;
+    left: 12px;
     width: 44px;
     height: 44px;
+    -webkit-tap-highlight-color: transparent;
   }
   .smile-indicator {
-    bottom: 10px;
-    right: 12px;
-    padding: 5px 10px;
-    gap: 5px;
+    bottom: 8px;
+    right: 10px;
+    padding: 4px 8px;
+    gap: 4px;
   }
   .smile-label {
-    font-size: 8px;
+    font-size: 7px;
   }
   .smile-bar-container {
-    width: 70px;
+    width: 60px;
     height: 4px;
   }
   .smile-value {
-    font-size: 9px;
+    font-size: 8px;
   }
   .start-screen-content {
-    padding: 40px 30px;
+    padding: 32px 24px;
   }
+  .start-game-btn {
+    padding: 14px 48px;
+    font-size: 14px;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+  .level-preview {
+    font-size: 28px;
+  }
+  .rules {
+    margin-bottom: 32px;
+  }
+  .rules-title {
+    font-size: 18px;
+  }
+  .rules-list li {
+    font-size: 14px;
+  }
+}
+@media (max-width: 480px) {
+  .face-circle {
+    width: 90px;
+    height: 90px;
+    top: 10px;
+    right: 10px;
+  }
+  .level-indicator {
+    top: 10px;
+    padding: 8px 16px;
+  }
+  .level-number {
+    font-size: 14px;
+  }
+  .back-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+  }
+  .smile-indicator {
+    bottom: 6px;
+    right: 8px;
+  }
+  .start-screen-content {
+    padding: 24px 16px;
+  }
+  .level-preview {
+    font-size: 24px;
+  }
+  .rules-list li {
+    font-size: 13px;
+  }
+  .start-game-btn {
+    padding: 12px 40px;
+  }
+}
+/* Touch optimizations */
+button {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Prevent text selection on buttons */
+button, .back-btn, .start-game-btn {
+  -webkit-user-select: none;
+     -moz-user-select: none;
+          user-select: none;
+}
+
+/* Better mobile viewport */
+.game-page {
+  -webkit-text-size-adjust: 100%;
+  -moz-text-size-adjust: 100%;
+       text-size-adjust: 100%;
 }/*# sourceMappingURL=GamePage.css.map */

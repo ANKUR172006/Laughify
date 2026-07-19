@@ -16,6 +16,7 @@ export const useFaceDetection = () => {
   const smoothedArousalRef = useRef(0);
   const calibrationRef = useRef(null);
   const streamRef = useRef(null);
+  const lastFrameTimeRef = useRef(0); // Throttle detection to reduce load
 
   // States
   const [expression, setExpression] = useState("😐 Waiting...");
@@ -51,14 +52,16 @@ export const useFaceDetection = () => {
         setLoadingModel(true);
         streamRef.current = await navigator.mediaDevices.getUserMedia({
           video: {
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
+            width: { ideal: 640 }, // Lower resolution for mobile performance
+            height: { ideal: 480 },
             facingMode: "user"
           },
         });
 
         if (videoRef.current) {
           videoRef.current.srcObject = streamRef.current;
+          videoRef.current.muted = true; // Muted for autoplay on mobile
+          videoRef.current.playsInline = true; // Critical for iOS
           await new Promise((resolve) => {
             videoRef.current.onloadedmetadata = () => resolve();
           });
@@ -83,6 +86,14 @@ export const useFaceDetection = () => {
         animationRef.current = requestAnimationFrame(detect);
         return;
       }
+
+      // Throttle detection to ~20fps to reduce mobile load (every 50ms)
+      const now = performance.now();
+      if (now - lastFrameTimeRef.current < 50) {
+        animationRef.current = requestAnimationFrame(detect);
+        return;
+      }
+      lastFrameTimeRef.current = now;
 
       const video = videoRef.current;
       const canvas = canvasRef.current;

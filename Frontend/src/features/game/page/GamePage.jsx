@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import gsap from "gsap";
 import { ArrowLeft, Smile } from "lucide-react";
@@ -162,6 +162,8 @@ export default function GamePage() {
     setIsGameActive(true);
     if (videoRef.current) {
       videoRef.current.currentTime = 0;
+      videoRef.current.playsInline = true;
+      videoRef.current.muted = true;
       videoRef.current.play();
     }
 
@@ -190,10 +192,11 @@ export default function GamePage() {
     );
   }, [setIsGameActive]);
 
-  // Monitor loss conditions
+  // Monitor loss conditions - memoize dependencies
+  const isGamePlaying = gameState.isPlaying;
   useEffect(() => {
     console.log("Detection State: ", detectionState); // Debug log!
-    if (!gameState.isPlaying) {
+    if (!isGamePlaying) {
       if (eyesClosedTimerRef.current) clearTimeout(eyesClosedTimerRef.current);
       if (faceAwayTimerRef.current) clearTimeout(faceAwayTimerRef.current);
       return;
@@ -240,7 +243,7 @@ export default function GamePage() {
         faceAwayTimerRef.current = null;
       }
     }
-  }, [detectionState, gameState.isPlaying, handleLose]);
+  }, [detectionState, isGamePlaying, handleLose]);
 
   return (
     <div className="game-page">
