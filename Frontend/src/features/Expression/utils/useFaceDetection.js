@@ -55,8 +55,8 @@ export const useFaceDetection = () => {
         const modelPromise = initializeFaceLandmarker();
         const cameraPromise = navigator.mediaDevices.getUserMedia({
           video: {
-            width: { ideal: 480 }, // Even lower resolution for faster mobile loading
-            height: { ideal: 360 },
+            width: { ideal: 640 }, // Slightly higher resolution for better detection accuracy
+            height: { ideal: 480 },
             facingMode: "user"
           },
         });
@@ -92,9 +92,9 @@ export const useFaceDetection = () => {
         return;
       }
 
-      // Throttle detection to ~15fps to reduce mobile load (every ~66ms)
+      // Throttle detection to ~20fps to balance speed and performance (every ~50ms)
       const now = performance.now();
-      if (now - lastFrameTimeRef.current < 66) {
+      if (now - lastFrameTimeRef.current < 50) {
         animationRef.current = requestAnimationFrame(detect);
         return;
       }

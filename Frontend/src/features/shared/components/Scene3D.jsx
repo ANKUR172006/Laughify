@@ -4,7 +4,7 @@ import * as THREE from 'three';
 
 const Particles = () => {
   const mesh = useRef();
-  const particlesCount = 500; // Reduced from 5000 to make it lighter
+  const particlesCount = 200; // Even fewer particles for better mobile performance
 
   const particlesPosition = useMemo(() => {
     const positions = new Float32Array(particlesCount * 3);
@@ -18,8 +18,8 @@ const Particles = () => {
 
   useFrame((state, delta) => {
     if (mesh.current) {
-      mesh.current.rotation.x += delta * 0.02;
-      mesh.current.rotation.y += delta * 0.03;
+      mesh.current.rotation.x += delta * 0.015; // Slower rotation for better performance
+      mesh.current.rotation.y += delta * 0.02;
     }
   });
 
@@ -35,7 +35,7 @@ const Particles = () => {
           />
         </bufferGeometry>
         <pointsMaterial
-          size={0.06}
+          size={0.08}
           color="#3b82f6"
           transparent
           opacity={0.5}

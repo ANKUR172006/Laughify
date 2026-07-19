@@ -12,7 +12,7 @@ import Scene3D from "./features/shared/components/Scene3D";
 
 function RootLayout() {
   const location = useLocation();
-  const show3DScene = !['/login', '/register'].includes(location.pathname);
+  const show3DScene = !['/login', '/register', '/game'].includes(location.pathname);
 
   return (
     <>
