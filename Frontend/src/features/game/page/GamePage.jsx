@@ -28,6 +28,7 @@ export default function GamePage() {
   const [isTransitioning, setIsTransitioning] = useState(false);
 
   const videoRef = useRef(null);
+  const faceExpressionRef = useRef(null);
   const eyesClosedTimerRef = useRef(null);
   const faceAwayTimerRef = useRef(null);
   const hasCapturedPhoto = useRef(false);
@@ -74,11 +75,11 @@ export default function GamePage() {
     );
   }, []);
 
-  // Capture and upload photo when user loses
+  // Capture and upload photo when user loses or wins
   const captureAndUploadPhoto = useCallback(async () => {
     try {
       const canvas = document.createElement('canvas');
-      const videoElement = document.querySelector('.face-circle-inner video');
+      const videoElement = faceExpressionRef.current?.getVideoElement?.();
       if (videoElement && videoElement.readyState === 4) {
         canvas.width = videoElement.videoWidth;
         canvas.height = videoElement.videoHeight;
@@ -128,6 +129,16 @@ export default function GamePage() {
       setGameState({ isPlaying: false });
       setIsGameActive(false);
 
+      // Capture photo for win
+      try {
+        await Promise.race([
+          captureAndUploadPhoto(),
+          new Promise(resolve => setTimeout(resolve, 1000))
+        ]);
+      } catch (err) {
+        console.error("Error uploading photo on win, continuing anyway", err);
+      }
+
       // Update highest level if user is logged in
       if (user) {
         try {
@@ -147,7 +158,7 @@ export default function GamePage() {
         navigate("/level-complete");
       }, 100);
     }
-  }, [gameState.isPlaying, setIsGameActive, unlockNextLevel, navigate, currentLevel, user, isTransitioning]);
+  }, [gameState.isPlaying, setIsGameActive, unlockNextLevel, navigate, currentLevel, user, isTransitioning, captureAndUploadPhoto]);
 
   // Update detection state
   const updateDetectionState = useCallback((state) => {
@@ -266,6 +277,7 @@ export default function GamePage() {
       {/* Top-right face circle */}
       <div ref={faceCircleRef} className="face-circle glass-card">
         <FaceExpression 
+          ref={faceExpressionRef}
           className="face-circle-inner"
           onDetectionUpdate={updateDetectionState}
         />

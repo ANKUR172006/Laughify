@@ -1,8 +1,8 @@
-import React from "react";
+import React, { forwardRef, useImperativeHandle } from "react";
 import { useFaceDetection } from "../Expression/utils/useFaceDetection";
 import "../Expression/styles/faceExpression.scss";
 
-export default function FaceExpression({ className = "", onDetectionUpdate }) {
+const FaceExpression = forwardRef(function FaceExpression({ className = "", onDetectionUpdate }, ref) {
   const {
     videoRef,
     canvasRef,
@@ -15,6 +15,11 @@ export default function FaceExpression({ className = "", onDetectionUpdate }) {
     eyesOnScreen,
     faceDetected
   } = useFaceDetection();
+  
+  // Expose the video element via ref
+  useImperativeHandle(ref, () => ({
+    getVideoElement: () => videoRef.current
+  }));
 
   // Call onDetectionUpdate whenever any detection state changes
   React.useEffect(() => {
@@ -74,4 +79,6 @@ export default function FaceExpression({ className = "", onDetectionUpdate }) {
       {/* Optional calibration button for parent to use if needed, but we can also expose startCalibration */}
     </div>
   );
-}
+});
+
+export default FaceExpression;
