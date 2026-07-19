@@ -163,7 +163,7 @@ export default function GamePage() {
     if (videoRef.current) {
       videoRef.current.currentTime = 0;
       videoRef.current.playsInline = true;
-      videoRef.current.muted = true;
+      videoRef.current.muted = false;
       videoRef.current.play();
     }
 
