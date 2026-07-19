@@ -115,8 +115,10 @@ export default function GamePage() {
       console.error("Error uploading photo, continuing anyway", err);
     }
 
-    // Navigate immediately
-    navigate("/lose", { state: { reason } });
+    // Navigate after tiny delay to make sure everything is settled
+    setTimeout(() => {
+      navigate("/lose", { state: { reason } });
+    }, 100);
   }, [setIsGameActive, captureAndUploadPhoto, navigate, isTransitioning]);
 
   // Handle win (video ended)
@@ -140,8 +142,10 @@ export default function GamePage() {
 
       unlockNextLevel();
 
-      // Navigate immediately
-      navigate("/level-complete");
+      // Navigate after tiny delay to make sure everything is settled
+      setTimeout(() => {
+        navigate("/level-complete");
+      }, 100);
     }
   }, [gameState.isPlaying, setIsGameActive, unlockNextLevel, navigate, currentLevel, user, isTransitioning]);
 
@@ -195,21 +199,21 @@ export default function GamePage() {
       return;
     }
 
-    // Condition 1: Smile > 40% - highest priority, immediate loss
-    if (detectionState.smileIntensity > 40) {
+    // Condition 1: Smile > 20% - highest priority, immediate loss
+    if (detectionState.smileIntensity > 20) {
       console.log("Losing: smile too big (", detectionState.smileIntensity, "%)");
       handleLose("smile");
       return;
     }
 
-    // Condition 2: Eyes closed > 2.5s - next priority
+    // Condition 2: Eyes closed > 2s - next priority
     if (!detectionState.eyesOpen?.isOpen) {
       if (!eyesClosedTimerRef.current) {
-        console.log("Starting eyes closed timer (2.5s)");
+        console.log("Starting eyes closed timer (2s)");
         eyesClosedTimerRef.current = setTimeout(() => {
           console.log("Losing: eyes closed too long");
           handleLose("eyes-closed");
-        }, 2500);
+        }, 2000);
       }
     } else {
       if (eyesClosedTimerRef.current) {
@@ -219,15 +223,15 @@ export default function GamePage() {
       }
     }
 
-    // Condition 3: Face not detected OR eyes not on screen > 5s - solid logic
+    // Condition 3: Face not detected OR eyes not on screen > 3s - solid logic
     const isFaceAwayOrOffScreen = !detectionState.faceDetected || !detectionState.eyesOnScreen?.isOnScreen;
     if (isFaceAwayOrOffScreen) {
       if (!faceAwayTimerRef.current) {
-        console.log("Starting face away/look away timer (5s)");
+        console.log("Starting face away/look away timer (3s)");
         faceAwayTimerRef.current = setTimeout(() => {
           console.log("Losing: face away/look away too long");
           handleLose("face-away");
-        }, 5000);
+        }, 3000);
       }
     } else {
       if (faceAwayTimerRef.current) {
@@ -309,7 +313,7 @@ export default function GamePage() {
           </div>
           <div className="smile-bar-container">
             <div 
-              className={`smile-bar ${detectionState.smileIntensity > 40 ? 'danger' : ''}`}
+              className={`smile-bar ${detectionState.smileIntensity > 20 ? 'danger' : ''}`}
               style={{ width: `${detectionState.smileIntensity}%` }}
             />
           </div>

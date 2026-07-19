@@ -152,8 +152,8 @@ const checkEyesOpen = (blendMap) => {
   
   console.log("DEBUG - eyeBlinkLeft:", blinkLeft, "eyeBlinkRight:", blinkRight);
   
-  // Eyes closed if either eye >0.7 OR both >0.6 (more sensitive now)
-  const eyesClosed = (blinkLeft > 0.7) || (blinkRight > 0.7) || ((blinkLeft > 0.6) && (blinkRight > 0.6));
+  // Eyes closed if either eye >0.5 OR both >0.4 (more sensitive now)
+  const eyesClosed = (blinkLeft > 0.5) || (blinkRight > 0.5) || ((blinkLeft > 0.4) && (blinkRight > 0.4));
   
   return {
     isOpen: !eyesClosed,
@@ -216,10 +216,10 @@ const checkEyesOnScreen = (blendMap, landmarks, transformationMatrix) => {
   // 1. Check landmarks are in frame
   const landmarksValid = checkLandmarksInFrame(landmarks);
   
-  // 2. Check head pose (yaw and pitch)
+  // 2. Check head pose (yaw and pitch) - a bit stricter
   const headPose = extractHeadPose(transformationMatrix);
-  const maxYaw = 40; // degrees - allow up to 40deg left/right
-  const maxPitch = 35; // degrees - allow up to 35deg up/down
+  const maxYaw = 35; // degrees - allow up to 35deg left/right
+  const maxPitch = 30; // degrees - allow up to 30deg up/down
   const headPoseValid = Math.abs(headPose.yaw) < maxYaw && Math.abs(headPose.pitch) < maxPitch;
   
   // 3. Still use eyeLook blendshapes as backup, but more relaxed
@@ -229,7 +229,7 @@ const checkEyesOnScreen = (blendMap, landmarks, transformationMatrix) => {
   const lookOutRight = blendMap.eyeLookOutRight || 0;
   const maxLookLeft = Math.max(lookInLeft, lookOutLeft);
   const maxLookRight = Math.max(lookInRight, lookOutRight);
-  const gazeValid = maxLookLeft < 0.9 && maxLookRight < 0.9;
+  const gazeValid = maxLookLeft < 0.85 && maxLookRight < 0.85;
   
   // Combine all checks
   const isOnScreen = landmarksValid && headPoseValid && gazeValid;
