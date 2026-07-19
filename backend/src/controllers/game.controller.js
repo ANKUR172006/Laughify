@@ -87,22 +87,25 @@ const uploadUserPhoto = async (req, res) => {
     const { level, imageData } = req.body;
     const userId = req.user.id;
     
+    // Get user to retrieve username
+    const user = await userModel.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+    
     // imageData is base64 encoded
     const uploadResult = await imagekit.upload({
       file: imageData, // required
-      fileName: `user-laugh-level-${level}-${Date.now()}.jpg`, // required
+      fileName: `${user.username}-laugh-level-${level}-${Date.now()}.jpg`, // required
       folder: "/Laughing-Faces",
     });
 
     // Add photo to user's smilePhotos
-    const user = await userModel.findById(userId);
-    if (user) {
-      user.smilePhotos.push({
-        url: uploadResult.url,
-        level: level
-      });
-      await user.save();
-    }
+    user.smilePhotos.push({
+      url: uploadResult.url,
+      level: level
+    });
+    await user.save();
 
     res.status(200).json({
       success: true,
