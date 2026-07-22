@@ -132,6 +132,21 @@ export const useFaceDetection = () => {
           canvas.height = displayedHeight;
         }
 
+        // Get native video dimensions (the actual media resolution)
+        const videoNativeWidth = video.videoWidth;
+        const videoNativeHeight = video.videoHeight;
+        
+        // Calculate how much the video needs to be scaled to fill the container (object-fit: cover)
+        const scaleFactor = Math.max(displayedWidth / videoNativeWidth, displayedHeight / videoNativeHeight);
+        
+        // Calculate scaled dimensions of the video that's visible
+        const scaledVideoWidth = videoNativeWidth * scaleFactor;
+        const scaledVideoHeight = videoNativeHeight * scaleFactor;
+        
+        // Calculate offset to center the scaled video in the container
+        const offsetX = (displayedWidth - scaledVideoWidth) / 2;
+        const offsetY = (displayedHeight - scaledVideoHeight) / 2;
+
         const ctx = canvas.getContext("2d");
         const result = faceLandmarkerRef.current.detectForVideo(video, now);
         const hasFace = result.faceBlendshapes?.length && result.faceLandmarks?.length;
@@ -212,7 +227,7 @@ export const useFaceDetection = () => {
           const newAccentColor = EMOTION_COLORS[currentEmotionName] || "#6366f1";
           setAccentColor(newAccentColor);
           
-          renderFaceMesh(ctx, canvas, processed.landmarks, newAccentColor, displayedWidth, displayedHeight, 0, 0);
+          renderFaceMesh(ctx, canvas, processed.landmarks, newAccentColor, scaledVideoWidth, scaledVideoHeight, offsetX, offsetY);
         } else {
           // Clear canvas if no face
           ctx.clearRect(0, 0, canvas.width, canvas.height);
