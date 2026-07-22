@@ -123,9 +123,13 @@ export const useFaceDetection = () => {
         const video = videoRef.current;
         const canvas = canvasRef.current;
 
-        if (canvas.width !== video.clientWidth || canvas.height !== video.clientHeight) {
-          canvas.width = video.clientWidth;
-          canvas.height = video.clientHeight;
+        // Set canvas to exactly match video element's displayed size
+        const displayedWidth = video.clientWidth;
+        const displayedHeight = video.clientHeight;
+        
+        if (canvas.width !== displayedWidth || canvas.height !== displayedHeight) {
+          canvas.width = displayedWidth;
+          canvas.height = displayedHeight;
         }
 
         const ctx = canvas.getContext("2d");
@@ -207,7 +211,8 @@ export const useFaceDetection = () => {
           const currentEmotionName = processed.expression.split(" ").slice(1).join(" ");
           const newAccentColor = EMOTION_COLORS[currentEmotionName] || "#6366f1";
           setAccentColor(newAccentColor);
-          renderFaceMesh(ctx, canvas, processed.landmarks, newAccentColor);
+          
+          renderFaceMesh(ctx, canvas, processed.landmarks, newAccentColor, displayedWidth, displayedHeight, 0, 0);
         } else {
           // Clear canvas if no face
           ctx.clearRect(0, 0, canvas.width, canvas.height);

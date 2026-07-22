@@ -100,7 +100,7 @@ export const initializeFaceLandmarker = async () => {
   });
 };
 
-export const renderFaceMesh = (ctx, canvas, landmarks, accentColor) => {
+export const renderFaceMesh = (ctx, canvas, landmarks, accentColor, scaleX, scaleY, offsetX, offsetY) => {
   if (!ctx || !canvas || !landmarks) return;
 
   const w = canvas.width;
@@ -117,8 +117,8 @@ export const renderFaceMesh = (ctx, canvas, landmarks, accentColor) => {
     indices.forEach((i) => {
       const pt = landmarks[i];
       if (pt) {
-        const x = (1 - pt.x) * w;
-        const y = pt.y * h;
+        const x = offsetX + (1 - pt.x) * scaleX;
+        const y = offsetY + pt.y * scaleY;
         if (firstPoint) {
           ctx.moveTo(x, y);
           firstPoint = false;
@@ -134,8 +134,8 @@ export const renderFaceMesh = (ctx, canvas, landmarks, accentColor) => {
   ctx.globalAlpha = 1;
   landmarks.forEach((pt) => {
     if (pt) {
-      const x = (1 - pt.x) * w;
-      const y = pt.y * h;
+      const x = offsetX + (1 - pt.x) * scaleX;
+      const y = offsetY + pt.y * scaleY;
       ctx.beginPath();
       ctx.arc(x, y, 1.5, 0, 2 * Math.PI);
       ctx.fill();
