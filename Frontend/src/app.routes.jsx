@@ -8,6 +8,7 @@ import LosePage from "./features/game/page/LosePage";
 import LevelCompletePage from "./features/game/page/LevelCompletePage";
 import ProfilePage from "./features/game/page/ProfilePage";
 import LeaderboardPage from "./features/game/page/LeaderboardPage";
+import LoveWallPage from "./features/game/page/LoveWallPage";
 import Scene3D from "./features/shared/components/Scene3D";
 
 function RootLayout() {
@@ -49,6 +50,10 @@ export const router = createBrowserRouter([
       {
         path: "/leaderboard",
         element: <Protected><LeaderboardPage /></Protected>,
+      },
+      {
+        path: "/love-wall",
+        element: <Protected><LoveWallPage /></Protected>,
       },
       {
         path: "/login",

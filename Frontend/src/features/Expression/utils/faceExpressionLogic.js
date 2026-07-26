@@ -48,6 +48,11 @@ export const EMOTION_COLORS = {
   "Eyes Closed": "#1e293b"
 };
 
+export const getEmotionName = (expression) => {
+  if (!expression) return "Neutral";
+  return String(expression).replace(/^[^\w]+/, "").trim();
+};
+
 export const LANDMARK_CONNECTIONS = {
   leftEye: [33, 7, 163, 144, 145, 153, 154, 155, 133, 173, 157, 158, 159, 160, 161, 246, 33],
   rightEye: [362, 382, 381, 380, 374, 373, 390, 249, 263, 466, 388, 387, 386, 385, 384, 398, 362],
@@ -100,7 +105,16 @@ export const initializeFaceLandmarker = async () => {
   });
 };
 
-export const renderFaceMesh = (ctx, canvas, landmarks, accentColor, scaleX, scaleY, offsetX, offsetY) => {
+export const renderFaceMesh = (
+  ctx,
+  canvas,
+  landmarks,
+  accentColor,
+  scaleX = canvas?.width ?? 0,
+  scaleY = canvas?.height ?? 0,
+  offsetX = 0,
+  offsetY = 0
+) => {
   if (!ctx || !canvas || !landmarks) return;
 
   const w = canvas.width;
@@ -156,11 +170,11 @@ export const extractHeadPose = (transformationMatrix) => {
   let yaw = Math.atan2(m[4], m[0]);
   let pitch = Math.asin(-m[8]);
   let roll = Math.atan2(m[9], m[10]);
-  
+
   yaw = yaw * (180 / Math.PI);
   pitch = pitch * (180 / Math.PI);
   roll = roll * (180 / Math.PI);
-  
+
   return { yaw, pitch, roll };
 };
 
@@ -181,11 +195,19 @@ export const createDefaultCalibration = () => ({
 // -------------------------------
 export const processFaceDetection = (result, calibrationData, stateRef) => {
   if (!result.faceBlendshapes?.length || !result.faceLandmarks?.length) {
+    const valence = EMA(0, stateRef?.smoothedValence ?? 0, 0.05);
+    const arousal = EMA(0, stateRef?.smoothedArousal ?? 0, 0.05);
+
+    if (stateRef) {
+      stateRef.smoothedValence = valence;
+      stateRef.smoothedArousal = arousal;
+    }
+
     return {
-      expression: "🚫 No Face Detected",
+      expression: "No Face Detected",
       confidence: 0,
-      valence: 0.95 * (stateRef?.smoothedValence ?? 0),
-      arousal: 0.95 * (stateRef?.smoothedArousal ?? 0),
+      valence,
+      arousal,
       activeBlendshapes: {},
       landmarks: null,
       smileIntensity: 0,
@@ -203,78 +225,135 @@ export const processFaceDetection = (result, calibrationData, stateRef) => {
     ])
   );
 
-  // Calibrated score
   const score = (name) => {
     const raw = blendMap[name] ?? 0;
-    if (!calibrationData || !calibrationData.blendshapes || !calibrationData.blendshapes[name]) return raw;
-    const baseline = calibrationData.blendshapes[name];
-    return clamp((raw - baseline) / clamp(1.0 - baseline, 0.01, 1));
+    const baseline = calibrationData?.blendshapes?.[name];
+    if (!Number.isFinite(baseline)) return raw;
+    return clamp((raw - baseline) / clamp(1 - baseline, 0.01, 1));
   };
 
-  // Smile calculation - robust, ignores talking
-  const smileL = blendMap.mouthSmileLeft ?? 0;
-  const smileR = blendMap.mouthSmileRight ?? 0;
-  const dimplerL = blendMap.mouthDimpleLeft ?? 0;
-  const dimplerR = blendMap.mouthDimpleRight ?? 0;
-  const mouthPressL = blendMap.mouthPressLeft ?? 0;
-  const mouthPressR = blendMap.mouthPressRight ?? 0;
-  const jawOpen = blendMap.jawOpen ?? 0;
-  const rawSmile = ((smileL + smileR)/2)*0.6 + ((dimplerL + dimplerR)/2)*0.3 + ((1 - (mouthPressL + mouthPressR)/2))*0.1;
-  const talkingFactor = jawOpen > 0.25 ? 0.5 : 1; // reduce smile sensitivity when talking
+  const averageScore = (...names) => (
+    names.reduce((sum, name) => sum + score(name), 0) / names.length
+  );
+
+  const smile = averageScore("mouthSmileLeft", "mouthSmileRight");
+  const rawSmile = (
+    smile * 0.6 +
+    averageScore("mouthDimpleLeft", "mouthDimpleRight") * 0.35 +
+    averageScore("cheekSquintLeft", "cheekSquintRight") * 0.05
+  );
+  const jawOpenRaw = blendMap.jawOpen ?? 0;
+  const talkingFactor = jawOpenRaw > 0.25 ? 0.5 : 1;
   const smileIntensity = clamp(rawSmile * talkingFactor, 0, 1) * 100;
 
-  // Eye closure
   const blinkLeft = blendMap.eyeBlinkLeft ?? 0;
   const blinkRight = blendMap.eyeBlinkRight ?? 0;
-  const eyesOpenScore = 1 - (blinkLeft + blinkRight)/2;
+  const eyesOpenScore = 1 - (blinkLeft + blinkRight) / 2;
 
-  // Pose / looking away
   const transformationMatrix = result.faceTransformationMatrixes?.[0];
   const pose = extractHeadPose(transformationMatrix);
   const landmarksValid = (() => {
     if (!landmarks) return false;
     const margin = 0.12;
     const keyIndices = [1, 33, 263];
-    return keyIndices.every(i => {
+    return keyIndices.every((i) => {
       const lm = landmarks[i];
       if (!lm) return false;
-      return lm.x >= margin && lm.x <= 1-margin && lm.y >= margin && lm.y <=1-margin;
+      return lm.x >= margin && lm.x <= 1 - margin && lm.y >= margin && lm.y <= 1 - margin;
     });
   })();
-  const lookInLeft = blendMap.eyeLookInLeft ??0;
-  const lookOutLeft = blendMap.eyeLookOutLeft ??0;
-  const lookInRight = blendMap.eyeLookInRight ??0;
-  const lookOutRight = blendMap.eyeLookOutRight ??0;
-  const maxGaze = Math.max(lookInLeft, lookOutLeft, lookInRight, lookOutRight);
+
+  const maxGaze = Math.max(
+    blendMap.eyeLookInLeft ?? 0,
+    blendMap.eyeLookOutLeft ?? 0,
+    blendMap.eyeLookInRight ?? 0,
+    blendMap.eyeLookOutRight ?? 0
+  );
   const gazeValid = maxGaze < 0.8;
-  const poseValid = Math.abs(pose.yaw - (calibrationData?.poseBaselineYaw ?? 0)) < 35 
-    && Math.abs(pose.pitch - (calibrationData?.poseBaselinePitch ?? 0)) <30;
+  const poseValid = Math.abs(pose.yaw - (calibrationData?.poseBaselineYaw ?? 0)) < 35 &&
+    Math.abs(pose.pitch - (calibrationData?.poseBaselinePitch ?? 0)) < 30;
   const eyesOnScreen = landmarksValid && poseValid && gazeValid;
 
-  // Emotion detection (legacy, kept for compatibility)
+  const frown = averageScore("mouthFrownLeft", "mouthFrownRight");
+  const browUp = score("browInnerUp");
+  const browDown = averageScore("browDownLeft", "browDownRight");
+  const eyeWide = averageScore("eyeWideLeft", "eyeWideRight");
+  const cheekSquint = averageScore("cheekSquintLeft", "cheekSquintRight");
+  const noseSneer = averageScore("noseSneerLeft", "noseSneerRight");
+  const mouthPress = averageScore("mouthPressLeft", "mouthPressRight");
+  const mouthPucker = score("mouthPucker");
+  const mouthShrug = averageScore("mouthShrugUpper", "mouthShrugLower");
+  const mouthFunnel = score("mouthFunnel");
+  const jawDrop = score("jawOpen");
+  const blink = averageScore("eyeBlinkLeft", "eyeBlinkRight");
+  const wink = Math.abs(score("eyeBlinkLeft") - score("eyeBlinkRight"));
+  const smirk = Math.max(
+    Math.abs(score("mouthSmileLeft") - score("mouthSmileRight")),
+    score("mouthLeft"),
+    score("mouthRight")
+  );
+
+  const candidates = [
+    { name: "Eyes Closed", value: blink * 1.2 },
+    { name: "Excited", value: smile * 0.7 + eyeWide * 0.35 + browUp * 0.25 + jawDrop * 0.15 },
+    { name: "Genuine Happy", value: smile * 0.75 + cheekSquint * 0.35 - frown * 0.2 },
+    { name: "Surprised", value: jawDrop * 0.45 + eyeWide * 0.4 + browUp * 0.35 - smile * 0.15 },
+    { name: "Anger", value: browDown * 0.55 + mouthPress * 0.25 + eyeWide * 0.15 + frown * 0.15 },
+    { name: "Sadness", value: frown * 0.5 + mouthShrug * 0.3 + browUp * 0.2 - smile * 0.2 },
+    { name: "Disgust", value: noseSneer * 0.55 + mouthPress * 0.25 + frown * 0.2 },
+    { name: "Fear", value: eyeWide * 0.35 + browUp * 0.35 + jawDrop * 0.2 + frown * 0.15 },
+    { name: "Kiss / Pucker", value: mouthPucker * 0.65 + mouthFunnel * 0.35 },
+    { name: "Winking / Smirking", value: wink * 0.55 + smirk * 0.35 + smile * 0.2 },
+    { name: "Thinking / Skeptical", value: browDown * 0.25 + smirk * 0.25 + mouthPress * 0.2 },
+    { name: "Bored / Tired", value: blink * 0.25 + mouthShrug * 0.2 + frown * 0.2 + (1 - eyesOpenScore) * 0.2 }
+  ];
+
+  let best = candidates.reduce((currentBest, item) => (
+    item.value > currentBest.value ? item : currentBest
+  ), { name: "Neutral", value: 0 });
+
+  const neutralScore = clamp(
+    1 - Math.max(smile, frown, browUp, browDown, eyeWide, noseSneer, mouthPress, mouthPucker, jawDrop, blink),
+    0,
+    1
+  );
+  if (best.value < 0.22 || neutralScore > best.value + 0.15) {
+    best = { name: "Neutral", value: neutralScore };
+  }
+
+  const targetValence = EMOTION_COORDINATES[best.name]?.x ?? 0;
+  const targetArousal = EMOTION_COORDINATES[best.name]?.y ?? 0;
+  const valence = EMA(targetValence, stateRef?.smoothedValence ?? targetValence, 0.25);
+  const arousal = EMA(targetArousal, stateRef?.smoothedArousal ?? targetArousal, 0.25);
+
+  if (stateRef) {
+    stateRef.smoothedValence = valence;
+    stateRef.smoothedArousal = arousal;
+  }
+
   const activeBlendshapes = {
-    "Smile": score("mouthSmileLeft"),
-    "Frown": score("mouthFrownLeft"),
-    "Jaw Open": score("jawOpen"),
-    "Eyebrows Up": score("browInnerUp"),
-    "Eyebrows Down": score("browDownLeft"),
-    "Eyes Wide": score("eyeWideLeft"),
-    "Cheeks Squint": score("cheekSquintLeft"),
-    "Nose Wrinkle": score("noseSneerLeft"),
-    "Mouth Press": score("mouthPressLeft"),
-    "Mouth Pucker": score("mouthPucker")
+    "Smile": smile,
+    "Frown": frown,
+    "Jaw Open": jawDrop,
+    "Eyebrows Up": browUp,
+    "Eyebrows Down": browDown,
+    "Eyes Wide": eyeWide,
+    "Cheeks Squint": cheekSquint,
+    "Nose Wrinkle": noseSneer,
+    "Mouth Press": mouthPress,
+    "Mouth Pucker": mouthPucker
   };
 
   return {
-    expression: "😐 Neutral",
-    confidence: 0.5,
-    valence: 0,
-    arousal:0,
+    expression: best.name,
+    confidence: clamp(best.value, 0, 1),
+    valence,
+    arousal,
     activeBlendshapes,
     landmarks,
     smileIntensity,
-    eyesOpen: { isOpen: eyesOpenScore >0.4, score: eyesOpenScore, leftBlink: blinkLeft, rightBlink: blinkRight },
-    eyesOnScreen: { isOnScreen: eyesOnScreen, score: eyesOnScreen? 1 : 0.3, yaw: pose.yaw, pitch: pose.pitch },
+    eyesOpen: { isOpen: eyesOpenScore > 0.4, score: eyesOpenScore, leftBlink: blinkLeft, rightBlink: blinkRight },
+    eyesOnScreen: { isOnScreen: eyesOnScreen, score: eyesOnScreen ? 1 : 0.3, yaw: pose.yaw, pitch: pose.pitch },
     blendMap,
     pose
   };

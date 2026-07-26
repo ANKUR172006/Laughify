@@ -60,7 +60,11 @@ export default function LeaderboardPage() {
               >
                 <div className="rank-cell">{badgeForRank(index + 1)}</div>
                 <div className="avatar-cell">
-                  <User size={24} />
+                  {player.profilePic ? (
+                    <img src={player.profilePic} alt={player.username || "Player"} />
+                  ) : (
+                    <User size={24} />
+                  )}
                 </div>
                 <div className="player-cell">
                   <span className="player-name">{player.username}</span>

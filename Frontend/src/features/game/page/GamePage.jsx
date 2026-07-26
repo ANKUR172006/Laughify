@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import gsap from "gsap";
 import { ArrowLeft, Smile } from "lucide-react";
@@ -7,6 +7,14 @@ import { useGameContext } from "../context/GameContext";
 import { useAuthContext } from "../../auth/authContext";
 import { getVideoByLevel, uploadUserPhoto, updateHighestLevel } from "../service/game.api";
 import "../styles/GamePage.scss";
+
+const LOSS_RULES = {
+  maxSmilePercent: 20,
+  smileGraceMs: 250,
+  eyesClosedGraceMs: 1000,
+  faceMissingGraceMs: 1000,
+  lookAwayGraceMs: 1000,
+};
 
 export default function GamePage() {
   const navigate = useNavigate();
@@ -20,6 +28,8 @@ export default function GamePage() {
     eyesOpen: { isOpen: true },
     eyesOnScreen: { isOnScreen: true },
     faceDetected: false,
+    cameraActive: false,
+    loadingModel: true,
   });
 
   const [gameState, setGameState] = useState({
@@ -29,15 +39,32 @@ export default function GamePage() {
 
   const videoRef = useRef(null);
   const faceExpressionRef = useRef(null);
+  const smileTimerRef = useRef(null);
   const eyesClosedTimerRef = useRef(null);
-  const faceAwayTimerRef = useRef(null);
+  const faceMissingTimerRef = useRef(null);
+  const lookAwayTimerRef = useRef(null);
   const hasCapturedPhoto = useRef(false);
+  const isTransitioningRef = useRef(false);
 
   // Refs for animations
   const levelRef = useRef(null);
   const faceCircleRef = useRef(null);
   const startScreenRef = useRef(null);
   const smileIndicatorRef = useRef(null);
+
+  const clearLossTimers = useCallback(() => {
+    [
+      smileTimerRef,
+      eyesClosedTimerRef,
+      faceMissingTimerRef,
+      lookAwayTimerRef,
+    ].forEach((timerRef) => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+    });
+  }, []);
 
   // Fetch video for current level
   useEffect(() => {
@@ -95,8 +122,10 @@ export default function GamePage() {
 
   // Handle loss
   const handleLose = useCallback(async (reason) => {
-    if (hasCapturedPhoto.current || isTransitioning) return;
+    if (hasCapturedPhoto.current || isTransitioningRef.current) return;
     hasCapturedPhoto.current = true;
+    isTransitioningRef.current = true;
+    clearLossTimers();
     setIsTransitioning(true);
     setGameState({ isPlaying: false });
     setIsGameActive(false);
@@ -120,11 +149,21 @@ export default function GamePage() {
     setTimeout(() => {
       navigate("/lose", { state: { reason } });
     }, 100);
-  }, [setIsGameActive, captureAndUploadPhoto, navigate, isTransitioning]);
+  }, [setIsGameActive, captureAndUploadPhoto, navigate, clearLossTimers]);
+
+  const armLossTimer = useCallback((timerRef, reason, delayMs) => {
+    if (timerRef.current || hasCapturedPhoto.current || isTransitioningRef.current) return;
+    timerRef.current = setTimeout(() => {
+      timerRef.current = null;
+      handleLose(reason);
+    }, delayMs);
+  }, [handleLose]);
 
   // Handle win (video ended)
   const handleVideoEnd = useCallback(async () => {
-    if (gameState.isPlaying && !isTransitioning) {
+    if (gameState.isPlaying && !isTransitioningRef.current) {
+      isTransitioningRef.current = true;
+      clearLossTimers();
       setIsTransitioning(true);
       setGameState({ isPlaying: false });
       setIsGameActive(false);
@@ -158,7 +197,7 @@ export default function GamePage() {
         navigate("/level-complete");
       }, 100);
     }
-  }, [gameState.isPlaying, setIsGameActive, unlockNextLevel, navigate, currentLevel, user, isTransitioning, captureAndUploadPhoto]);
+  }, [gameState.isPlaying, setIsGameActive, unlockNextLevel, navigate, currentLevel, user, captureAndUploadPhoto, clearLossTimers]);
 
   // Update detection state
   const updateDetectionState = useCallback((state) => {
@@ -168,6 +207,8 @@ export default function GamePage() {
   // Start game
   const startGame = useCallback(() => {
     hasCapturedPhoto.current = false;
+    isTransitioningRef.current = false;
+    clearLossTimers();
     setIsTransitioning(false);
     setGameState({ isPlaying: true });
     setIsGameActive(true);
@@ -201,60 +242,60 @@ export default function GamePage() {
       { opacity: 0, y: 20 },
       { opacity: 1, y: 0, duration: 0.4, ease: "back.out(1.7)" }
     );
-  }, [setIsGameActive]);
+  }, [clearLossTimers, setIsGameActive]);
 
-  // Monitor loss conditions - memoize dependencies
   const isGamePlaying = gameState.isPlaying;
   useEffect(() => {
-    console.log("Detection State: ", detectionState); // Debug log!
-    if (!isGamePlaying) {
-      if (eyesClosedTimerRef.current) clearTimeout(eyesClosedTimerRef.current);
-      if (faceAwayTimerRef.current) clearTimeout(faceAwayTimerRef.current);
+    const detectionReady = detectionState.cameraActive && !detectionState.loadingModel;
+
+    if (!isGamePlaying || !detectionReady || isTransitioning) {
+      clearLossTimers();
       return;
     }
 
-    // Condition 1: Smile > 20% - highest priority, immediate loss
-    if (detectionState.smileIntensity > 20) {
-      console.log("Losing: smile too big (", detectionState.smileIntensity, "%)");
-      handleLose("smile");
-      return;
+    if (detectionState.smileIntensity > LOSS_RULES.maxSmilePercent) {
+      armLossTimer(smileTimerRef, "smile", LOSS_RULES.smileGraceMs);
+    } else if (smileTimerRef.current) {
+      clearTimeout(smileTimerRef.current);
+      smileTimerRef.current = null;
     }
 
-    // Condition 2: Eyes closed > 2s - next priority
-    if (!detectionState.eyesOpen?.isOpen) {
-      if (!eyesClosedTimerRef.current) {
-        console.log("Starting eyes closed timer (2s)");
-        eyesClosedTimerRef.current = setTimeout(() => {
-          console.log("Losing: eyes closed too long");
-          handleLose("eyes-closed");
-        }, 2000);
+    if (!detectionState.faceDetected) {
+      armLossTimer(faceMissingTimerRef, "face-missing", LOSS_RULES.faceMissingGraceMs);
+      if (lookAwayTimerRef.current) {
+        clearTimeout(lookAwayTimerRef.current);
+        lookAwayTimerRef.current = null;
       }
-    } else {
       if (eyesClosedTimerRef.current) {
-        console.log("Clearing eyes closed timer");
         clearTimeout(eyesClosedTimerRef.current);
         eyesClosedTimerRef.current = null;
       }
+      return;
+    } else if (faceMissingTimerRef.current) {
+      clearTimeout(faceMissingTimerRef.current);
+      faceMissingTimerRef.current = null;
     }
 
-    // Condition 3: Face not detected OR eyes not on screen > 3s - solid logic
-    const isFaceAwayOrOffScreen = !detectionState.faceDetected || !detectionState.eyesOnScreen?.isOnScreen;
-    if (isFaceAwayOrOffScreen) {
-      if (!faceAwayTimerRef.current) {
-        console.log("Starting face away/look away timer (3s)");
-        faceAwayTimerRef.current = setTimeout(() => {
-          console.log("Losing: face away/look away too long");
-          handleLose("face-away");
-        }, 3000);
-      }
-    } else {
-      if (faceAwayTimerRef.current) {
-        console.log("Clearing face away/look away timer");
-        clearTimeout(faceAwayTimerRef.current);
-        faceAwayTimerRef.current = null;
-      }
+    if (!detectionState.eyesOnScreen?.isOnScreen) {
+      armLossTimer(lookAwayTimerRef, "look-away", LOSS_RULES.lookAwayGraceMs);
+    } else if (lookAwayTimerRef.current) {
+      clearTimeout(lookAwayTimerRef.current);
+      lookAwayTimerRef.current = null;
     }
-  }, [detectionState, isGamePlaying, handleLose]);
+
+    if (!detectionState.eyesOpen?.isOpen) {
+      armLossTimer(eyesClosedTimerRef, "eyes-closed", LOSS_RULES.eyesClosedGraceMs);
+    } else if (eyesClosedTimerRef.current) {
+      clearTimeout(eyesClosedTimerRef.current);
+      eyesClosedTimerRef.current = null;
+    }
+  }, [detectionState, isGamePlaying, isTransitioning, armLossTimer, clearLossTimers]);
+
+  useEffect(() => {
+    return () => clearLossTimers();
+  }, [clearLossTimers]);
+
+  const canStartGame = !isLoadingVideo && detectionState.cameraActive && !detectionState.loadingModel;
 
   return (
     <div className="game-page">
@@ -307,13 +348,17 @@ export default function GamePage() {
             <div className="rules">
               <h3 className="rules-title">How to Win:</h3>
               <ul className="rules-list">
-                <li>No smiles or laughter</li>
-                <li>Keep your eyes open</li>
-                <li>Stay in the camera's view</li>
+                <li>Smile must stay under 20%</li>
+                <li>Eyes closed for 1 second loses</li>
+                <li>Keep your face and eyes on camera</li>
               </ul>
             </div>
-            <button className="start-game-btn btn-primary" onClick={startGame}>
-              Start Level
+            <button
+              className="start-game-btn btn-primary"
+              onClick={startGame}
+              disabled={!canStartGame}
+            >
+              {canStartGame ? "Start Level" : "Camera Warming Up"}
             </button>
           </div>
         </div>
@@ -328,7 +373,7 @@ export default function GamePage() {
           </div>
           <div className="smile-bar-container">
             <div 
-              className={`smile-bar ${detectionState.smileIntensity > 20 ? 'danger' : ''}`}
+              className={`smile-bar ${detectionState.smileIntensity > LOSS_RULES.maxSmilePercent ? "danger" : ""}`}
               style={{ width: `${detectionState.smileIntensity}%` }}
             />
           </div>

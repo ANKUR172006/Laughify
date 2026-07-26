@@ -22,6 +22,12 @@ export async function login({ identifier, password }) {
 
   return response.data;
 }
+
+export async function googleAuth({ credential }) {
+  const response = await api.post("/api/auth/google", { credential });
+  return response.data;
+}
+
 export async function getMe() {
   const response = await api.get("/api/auth/get-me");
   return response.data;

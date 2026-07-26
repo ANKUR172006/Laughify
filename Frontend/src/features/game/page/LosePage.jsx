@@ -5,6 +5,9 @@ import gsap from "gsap";
 import { RotateCcw, Home, Smile, EyeOff, UserMinus } from "lucide-react";
 import "../styles/LosePage.scss";
 
+const MotionDiv = motion.div;
+const MotionButton = motion.button;
+
 export default function LosePage() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -23,13 +26,20 @@ export default function LosePage() {
         return {
           icon: <EyeOff size={80} strokeWidth={1.5} />,
           title: "Eyes Closed Too Long!",
-          text: "Your eyes were closed for over 2 seconds! Keep them on the screen!"
+          text: "Your eyes were closed for over 1 second. Keep them open to survive the level."
         };
-      case "face-away":
+      case "face-missing":
         return {
           icon: <UserMinus size={80} strokeWidth={1.5} />,
           title: "Where'd You Go?",
-          text: "Your face was not in the camera view for too long! Stay in the frame!"
+          text: "Your face left the camera view. Stay in the frame until the video ends."
+        };
+      case "look-away":
+      case "face-away":
+        return {
+          icon: <EyeOff size={80} strokeWidth={1.5} />,
+          title: "Look at the Screen!",
+          text: "You looked away from the camera. Keep your eyes on screen to win."
         };
       default:
         return {
@@ -54,11 +64,11 @@ export default function LosePage() {
   return (
     <div className="lose-page">
       <div className="lose-container">
-        <motion.div
+        <MotionDiv
           ref={containerRef}
           className="lose-content glass-card"
         >
-          <motion.div
+          <MotionDiv
             className="lose-icon"
             animate={{
               y: [0, -16, 0],
@@ -71,7 +81,7 @@ export default function LosePage() {
             }}
           >
             {content.icon}
-          </motion.div>
+          </MotionDiv>
           
           <h1 className="lose-title gradient-text">
             {content.title}
@@ -86,7 +96,7 @@ export default function LosePage() {
           </div>
 
           <div className="lose-actions">
-            <motion.button
+            <MotionButton
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               className="retry-btn btn-primary" 
@@ -94,8 +104,8 @@ export default function LosePage() {
             >
               <RotateCcw size={22} />
               Try Again
-            </motion.button>
-            <motion.div
+            </MotionButton>
+            <MotionDiv
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
@@ -106,9 +116,9 @@ export default function LosePage() {
                 <Home size={22} />
                 Home
               </Link>
-            </motion.div>
+            </MotionDiv>
           </div>
-        </motion.div>
+        </MotionDiv>
       </div>
     </div>
   );

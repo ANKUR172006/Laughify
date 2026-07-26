@@ -2,6 +2,7 @@ const express = require("express");
 const path = require("path");
 const authRouter = require("./routes/auth.router");
 const gameRouter = require("./routes/game.router");
+const feedbackRouter = require("./routes/feedback.router");
 const cookieParser = require("cookie-parser");
 const cors = require("cors");
 const app = express();
@@ -13,6 +14,7 @@ app.use(cors({
 }));
 app.use("/api/auth", authRouter);
 app.use("/api/game", gameRouter);
+app.use("/api/feedback", feedbackRouter);
 
 // Serve static files from dist folder
 app.use(express.static(path.join(__dirname, "../dist")));

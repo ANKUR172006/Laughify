@@ -15,6 +15,11 @@ export async function uploadUserPhoto(level, imageData) {
   return response.data;
 }
 
+export async function uploadProfilePic(imageData) {
+  const response = await api.post("/profile-pic", { imageData });
+  return response.data;
+}
+
 export async function updateHighestLevel(level) {
   const response = await api.post("/highest-level", { level });
   return response.data;

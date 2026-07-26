@@ -3,13 +3,14 @@
   "version": "1.0.0",
   "description": "Laughify MERN stack game",
   "scripts": {
-    "install:frontend": "cd Frontend && npm install",
-    "install:backend": "cd backend && npm install",
-    "build:frontend": "cd Frontend && npm run build && cp -r Frontend/dist backend/dist 2>/dev/null || xcopy /E /I /Y Frontend\\dist backend\\dist",
-    "dev:frontend": "cd Frontend && npm run dev",
-    "dev:backend": "cd backend && npm run dev",
-    "start": "cd backend && npm start",
-    "build": "npm run install:backend && npm run install:frontend && npm run build:frontend"
+    "install:frontend": "npm install --prefix Frontend",
+    "install:backend": "npm install --prefix backend",
+    "build:frontend": "npm run build --prefix Frontend",
+    "copy:frontend": "node scripts/copy-frontend-dist.js",
+    "dev:frontend": "npm run dev --prefix Frontend",
+    "dev:backend": "npm run dev --prefix backend",
+    "start": "npm start --prefix backend",
+    "build": "npm run install:backend && npm run install:frontend && npm run build:frontend && npm run copy:frontend"
   },
   "keywords": [],
   "author": "",

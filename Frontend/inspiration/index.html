@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        @import "compass/css3";
+
+@import url(https://fonts.googleapis.com/css?family=Source+Sans+Pro);
+
+* { box-sizing: border-box; }
+
+html { height: 100%; }
+
+body {
+ 	font-family: 'Source Sans Pro', "HelveticaNeue-Light","Helvetica Neue Light","Helvetica Neue",Helvetica,Arial,"Lucida Grande",sans-serif;
+  color: white;
+  text-shadow: 0 -1px 0 rgba(0,0,0,0.5);
+  font-size: 18px;
+  height: 100%;
+  background: #bd9daa;
+  background: linear-gradient(#9f7887, #edc8c1, #f2f2f2);
+	-webkit-font-smoothing: antialiased;
+}
+
+.wrapper {
+  width: 430px;
+  background: #494344;
+  padding: 5px;
+  border-radius: 30px;
+  margin: 70px auto;
+  border: 1px solid #1a1919; 
+  box-shadow: 
+    inset 0 1px 0 rgba(255,255,255,0.25),
+    0 0 5px rgba(0,0,0,0.3),
+    0 3px 5px rgba(0,0,0,0.2),
+    inset 0 20px 20px rgba(255,255,255,0.15);
+  position: relative;
+}
+
+ul {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  z-index: 100;
+}
+
+ul:after {
+ 	clear: both;
+  display: table;
+  content: "";
+}
+
+li {
+  border: 1px solid #1a1919;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #515153;
+  position: relative;
+  text-align:center;
+  line-height: 40px;
+  box-shadow: 
+    inset 0 1px 0 rgba(255,255,255,0.2),
+    inset 0 -2px 2px rgba(0,0,0,0.3),
+    inset 0 2px 2px rgba(255,255,255,0.1);
+  cursor: pointer;
+  margin: 0 4px;
+  transition: all 0.2s ease-out;
+}
+
+li:not(.middle):before {
+ 	content: attr(data-tooltip);
+  position: absolute;
+  font-size: 14px;
+  padding: 5px;
+  background: inherit; 
+  border: inherit;
+  border-radius: 0.3em;
+  line-height: 1;
+  min-width: 125px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.2);
+  bottom: -35px;
+  left: 0;
+  opacity: 0;
+  z-index: 100;
+  pointer-events: none;
+  transition: all 0.2s ease-out;
+}
+
+li:not(.middle):after {
+ 	position: absolute;
+  width: 8px;
+  height: 8px;
+  background: inherit;
+  transform: rotate(45deg);
+  content: "";
+  border: inherit;
+  border-bottom: none; border-right: none;
+  bottom: -13px;
+  left: 15px; 
+  z-index: 101;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.2s ease-out;
+}
+
+li:hover {
+  background: #5d595a;
+}
+
+li:focus,
+li:active {
+  box-shadow: 0 1px 0 rgba(255,255,255,0.25),
+    inset 0 0 5px rgba(0,0,0,0.4);
+}
+
+.middle {
+ 	position: absolute; 
+  width: 110px;
+  height: 110px;
+  line-height: 1.2em;
+  left: 50%;
+  top: 50%;
+  margin: -55px 0 0 -55px;
+  border-color: #2c2b2b;
+  background: linear-gradient(#726e70, #3e393a);
+  box-shadow:
+    inset 0 3px 4px rgba(0,0,0,0.45),
+    inset 0 0 2px 1px rgba(0,0,0,0.2),
+    0 1px 0 rgba(255,255,255,0.25);
+}
+
+.middle i {
+ 	display: block;
+  margin: 0 auto;
+  padding-top: 22px; 
+  padding-bottom: 5px;
+  font-size: 30px;
+}
+
+.middle strong {
+ 	display: block;
+  font-weight: bold;
+}
+
+.middle:after {
+ 	content: "";
+  position: absolute;
+  z-index: -1;
+  top: -6px; bottom: -6px; left: -6px; right: -6px; 
+  background: #7b777a;
+  border: 1px solid #1a1919;
+  border-radius: inherit;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.3),
+    0 1px 0 rgba(255,255,255,0.3),
+    0 0 5px rgba(0,0,0,0.3);
+}
+
+li:not(.middle):hover:after,
+li:not(.middle):hover:before {
+ 	opacity: 1;
+  pointer-events: auto;
+}
+
+li:nth-child(1),
+li:nth-child(2),
+li:nth-child(3) {
+ 	float: left; 
+}
+
+li:nth-child(5),
+li:nth-child(6),
+li:nth-child(7) {
+ 	float: right;
+}
+    </style>
+</head>
+<body>
+    <div class="wrapper">
+  <ul>
+    <li data-tooltip="like picture"><i class='icon-heart'></i></li>
+    <li data-tooltip="post comment"><i class="icon-comment"></i></li>
+    <li data-tooltip="delete picture"><i class="icon-trash"></i></li>
+  <li class="middle"><i class="icon-cog"></i><strong>Edit</strong> picture</li>
+  <li data-tooltip="watch fullscreen"><i class='icon-fullscreen'></i></li>
+  <li data-tooltip="go to gallery"><i class='icon-camera'></i></li>
+  <li data-tooltip="upload a picture"><i class='icon-upload-alt'></i></li>
+</ul>
+</div>
+</body>
+</html>
