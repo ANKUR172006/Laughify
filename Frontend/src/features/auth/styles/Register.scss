@@ -621,19 +621,6 @@
   border-radius: 22px;
   letter-spacing: 0.02em;
   z-index: 3;
-
-  &::before {
-    content: '';
-    position: absolute;
-    inset: 6px 14px;
-    height: 8px;
-    background: rgba(255,255,255,0.75);
-    border-radius: 9999px;
-    top: 8px;
-    bottom: auto;
-    pointer-events: none;
-    opacity: 0.9;
-  }
 }
 
 .auth-form .btn:hover:not(:disabled) {

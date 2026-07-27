@@ -71,18 +71,18 @@ const HomePage = () => {
   const features = [
     {
       icon: <Zap size={56} strokeWidth={1.5} />,
-      title: "Stay Focused",
-      description: "Keep your eyes on the camera, no distractions allowed"
+      title: "Stay Locked In",
+      description: "Eyes on camera. Brain on mission. No side quests."
     },
     {
       icon: <Smile size={56} strokeWidth={1.5} />,
-      title: "No Grins",
-      description: "Even the tiniest smile will end your run"
+      title: "No Grins Allowed",
+      description: "One tiny smirk and the level says goodbye."
     },
     {
       icon: <Clock size={56} strokeWidth={1.5} />,
       title: "Beat The Clock",
-      description: "Survive each level and climb the leaderboard"
+      description: "Outlast the joke and flex on the leaderboard."
     }
   ];
 
@@ -155,7 +155,7 @@ const HomePage = () => {
             Keep a straight face or lose it all
           </p>
           <Link ref={playBtnRef} to="/game" className="play-button">
-            <span>▶︎ Play</span>
+            <span>PLAY!</span>
           </Link>
         </section>
 

@@ -19,27 +19,32 @@
 .lose-content {
   padding: 72px 56px 64px;
   text-align: center;
-  background: #ffffff;
-  border: 4px solid #0f172a;
-  border-radius: 28px;
-  box-shadow: 8px 10px 0 #0f172a, 0 30px 60px -20px rgba(15, 23, 42, 0.25), 0 0 0 8px rgba(255, 255, 255, 0.55) inset;
+  background: linear-gradient(135deg, #ffffff 0%, #fce7f3 62%, #fef3c7 100%);
+  border: 5px solid #0f172a;
+  border-radius: 24px;
+  box-shadow: 10px 12px 0 #0f172a, 0 30px 60px -20px rgba(15, 23, 42, 0.25);
   position: relative;
   overflow: hidden;
 }
 
 .lose-content::before {
-  content: "";
+  content: "busted!";
   position: absolute;
-  top: 10px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 55%;
-  height: 10px;
-  background: rgba(255, 255, 255, 0.9);
+  top: 18px;
+  right: 22px;
+  padding: 8px 14px;
+  background: #fbbf24;
+  border: 4px solid #0f172a;
   border-radius: 9999px;
-  filter: blur(1px);
+  box-shadow: 4px 5px 0 #0f172a;
+  color: #0f172a;
+  font-family: 'Geist Pixel', 'Fredoka', sans-serif;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   z-index: 3;
-  opacity: 0.9;
+  transform: rotate(7deg);
 }
 
 .lose-content::after {
