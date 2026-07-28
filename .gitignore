@@ -10,7 +10,6 @@ backend/.env
 
 
 Frontend/dist/
-backend/dist/
 
 
 coverage/
