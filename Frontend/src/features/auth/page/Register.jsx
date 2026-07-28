@@ -6,14 +6,17 @@ import { GoogleLogin } from "@react-oauth/google";
 import { ArrowLeft, Eye, EyeOff } from "lucide-react";
 
 function Register() {
-  const { loading, handleRegister, handleGoogleAuth } = useAuth();
+  const { loading, handleRegister, handleVerifyRegisterOtp, handleGoogleAuth } = useAuth();
   const navigate = useNavigate();
 
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [otp, setOtp] = useState("");
+  const [verificationSent, setVerificationSent] = useState(false);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isFormUp, setIsFormUp] = useState(false);
@@ -48,6 +51,7 @@ function Register() {
   async function handleSubmit(e) {
     e.preventDefault();
     setError("");
+    setNotice("");
     setWrongEntry(false);
 
     if (password !== confirmPassword) {
@@ -65,8 +69,16 @@ function Register() {
     }
 
     try {
-      await handleRegister({ username, email, password });
-      navigate("/");
+      if (verificationSent) {
+        await handleVerifyRegisterOtp({ email, otp });
+        navigate("/");
+        return;
+      }
+
+      const data = await handleRegister({ username, email, password });
+      setVerificationSent(true);
+      setOtp(data?.devOtp || "");
+      setNotice(data?.message || "Verification code sent to your email");
     } catch (err) {
       console.error(err);
       setError(err.message || "Registration failed. Please try again.");
@@ -86,6 +98,23 @@ function Register() {
       setTimeout(() => setWrongEntry(false), 3000);
     }
   };
+
+  async function handleResendOtp() {
+    setError("");
+    setNotice("");
+    setWrongEntry(false);
+
+    try {
+      const data = await handleRegister({ username, email, password });
+      setOtp(data?.devOtp || "");
+      setNotice(data?.message || "Verification code sent again");
+    } catch (err) {
+      console.error(err);
+      setError(err.message || "Could not resend code. Please try again.");
+      setWrongEntry(true);
+      setTimeout(() => setWrongEntry(false), 3000);
+    }
+  }
 
   return (
     <div className="auth-container" ref={containerRef}>
@@ -120,93 +149,118 @@ function Register() {
         <div className="hand"></div>
         <div className="hand rgt"></div>
         
-        <h1>Register</h1>
+        <h1>{verificationSent ? "Verify Email" : "Register"}</h1>
         
         {error && <div className="alert">{error}</div>}
+        {notice && <p className="auth-notice">{notice}</p>}
 
-        <div style={{ display: "flex", justifyContent: "center", marginBottom: "1rem" }}>
-          <GoogleLogin
-            onSuccess={onGoogleSuccess}
-            onError={() => {
-              setError("Google login failed. Please try again.");
-              setWrongEntry(true);
-              setTimeout(() => setWrongEntry(false), 3000);
-            }}
-          />
-        </div>
+        {!verificationSent ? (
+          <>
+            <div style={{ display: "flex", justifyContent: "center", marginBottom: "1rem" }}>
+              <GoogleLogin
+                onSuccess={onGoogleSuccess}
+                onError={() => {
+                  setError("Google login failed. Please try again.");
+                  setWrongEntry(true);
+                  setTimeout(() => setWrongEntry(false), 3000);
+                }}
+              />
+            </div>
 
-        <div style={{ display: "flex", alignItems: "center", marginBottom: "1rem", color: "#aaa" }}>
-          <div style={{ flex: 1, height: "1px", backgroundColor: "#ddd" }} />
-          <span style={{ padding: "0 1rem" }}>or</span>
-          <div style={{ flex: 1, height: "1px", backgroundColor: "#ddd" }} />
-        </div>
+            <div style={{ display: "flex", alignItems: "center", marginBottom: "1rem", color: "#aaa" }}>
+              <div style={{ flex: 1, height: "1px", backgroundColor: "#ddd" }} />
+              <span style={{ padding: "0 1rem" }}>or</span>
+              <div style={{ flex: 1, height: "1px", backgroundColor: "#ddd" }} />
+            </div>
 
-        <div className="form-group">
-          <input
-            type="text"
-            className="form-control"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            required
-          />
-          <label className="form-label">Username</label>
-        </div>
+            <div className="form-group">
+              <input
+                type="text"
+                className="form-control"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                required
+              />
+              <label className="form-label">Username</label>
+            </div>
 
-        <div className="form-group">
-          <input
-            type="email"
-            className="form-control"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-          <label className="form-label">Email Address</label>
-        </div>
+            <div className="form-group">
+              <input
+                type="email"
+                className="form-control"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+              <label className="form-label">Email Address</label>
+            </div>
 
-        <div className="form-group">
-          <input
-            id="password"
-            type={showPassword ? "text" : "password"}
-            className="form-control"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            onFocus={() => setIsFormUp(true)}
-            onBlur={() => setIsFormUp(false)}
-            required
-          />
-          <label className="form-label">Password</label>
-          <button
-            type="button"
-            className="password-toggle"
-            onClick={() => setShowPassword(!showPassword)}
-          >
-            {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-          </button>
-        </div>
+            <div className="form-group">
+              <input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                className="form-control"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                onFocus={() => setIsFormUp(true)}
+                onBlur={() => setIsFormUp(false)}
+                required
+              />
+              <label className="form-label">Password</label>
+              <button
+                type="button"
+                className="password-toggle"
+                onClick={() => setShowPassword(!showPassword)}
+              >
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
 
-        <div className="form-group">
-          <input
-            id="confirmPassword"
-            type={showConfirmPassword ? "text" : "password"}
-            className="form-control"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            onFocus={() => setIsFormUp(true)}
-            onBlur={() => setIsFormUp(false)}
-            required
-          />
-          <label className="form-label">Confirm Password</label>
-          <button
-            type="button"
-            className="password-toggle confirm"
-            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-          >
-            {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-          </button>
-        </div>
+            <div className="form-group">
+              <input
+                id="confirmPassword"
+                type={showConfirmPassword ? "text" : "password"}
+                className="form-control"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                onFocus={() => setIsFormUp(true)}
+                onBlur={() => setIsFormUp(false)}
+                required
+              />
+              <label className="form-label">Confirm Password</label>
+              <button
+                type="button"
+                className="password-toggle confirm"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              >
+                {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <p className="otp-help">Enter the 6-digit code sent to {email}</p>
+            <div className="form-group">
+              <input
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]{6}"
+                maxLength="6"
+                className="form-control otp-input"
+                value={otp}
+                onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                required
+              />
+              <label className="form-label">Verification Code</label>
+            </div>
+            <button type="button" className="resend-btn" onClick={handleResendOtp} disabled={loading}>
+              Resend code
+            </button>
+          </>
+        )}
 
         <button type="submit" disabled={loading} className="btn">
-          {loading ? "Creating Account..." : "Register"}
+          {loading ? "Please wait..." : verificationSent ? "Verify & Join" : "Send Code"}
         </button>
       </form>
 

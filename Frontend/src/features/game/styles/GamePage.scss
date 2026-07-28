@@ -241,7 +241,7 @@ $border-chunky: 4px solid $dark-border;
 }
 
 .rules {
-  margin-bottom: 48px;
+  margin-bottom: 28px;
 }
 
 .rules-title {
@@ -298,6 +298,55 @@ $border-chunky: 4px solid $dark-border;
   }
 }
 
+.preflight-checks {
+  display: grid;
+  gap: 12px;
+  margin: 0 auto 34px;
+  max-width: 420px;
+  text-align: left;
+}
+
+.preflight-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  padding: 10px 14px;
+  border: 4px solid $dark-border;
+  border-radius: 16px;
+  box-shadow: 4px 5px 0 $dark-border;
+  color: $dark-border;
+  font-family: 'Fredoka', sans-serif;
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1.25;
+  background: #ffffff;
+}
+
+.preflight-item.ready {
+  background: linear-gradient(135deg, #dcfce7, #ffffff);
+}
+
+.preflight-item.waiting {
+  background: linear-gradient(135deg, #fee2e2, #ffffff);
+}
+
+.preflight-item svg {
+  flex: 0 0 auto;
+  stroke-width: 3;
+}
+
+.preflight-checkbox {
+  cursor: pointer;
+}
+
+.preflight-checkbox input {
+  width: 22px;
+  height: 22px;
+  accent-color: $mint;
+  cursor: pointer;
+}
+
 .start-game-btn {
   padding: 20px 72px;
   font-size: 20px;
@@ -322,6 +371,13 @@ $border-chunky: 4px solid $dark-border;
   &:active {
     transform: translate(4px, 6px);
     box-shadow: 4px 4px 0 $dark-border;
+  }
+
+  &:disabled {
+    opacity: 0.68;
+    cursor: not-allowed;
+    filter: grayscale(0.25);
+    transform: none;
   }
 }
 
@@ -482,7 +538,7 @@ $border-chunky: 4px solid $dark-border;
   }
 
   .rules {
-    margin-bottom: 36px;
+    margin-bottom: 24px;
   }
 
   .rules-title {
@@ -507,6 +563,18 @@ $border-chunky: 4px solid $dark-border;
       left: 4px;
       font-size: 13px;
     }
+  }
+
+  .preflight-checks {
+    margin-bottom: 28px;
+  }
+
+  .preflight-item {
+    min-height: 44px;
+    border-width: 3px;
+    border-radius: 14px;
+    box-shadow: 3px 4px 0 $dark-border;
+    font-size: 13px;
   }
 }
 
@@ -607,6 +675,16 @@ $border-chunky: 4px solid $dark-border;
       left: 3px;
       font-size: 11px;
     }
+  }
+
+  .preflight-checks {
+    gap: 10px;
+    margin-bottom: 24px;
+  }
+
+  .preflight-item {
+    padding: 9px 10px;
+    font-size: 12px;
   }
 
   .start-game-btn {

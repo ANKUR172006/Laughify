@@ -14,6 +14,14 @@ export async function register({ email, password, username }) {
   return response.data;
 }
 
+export async function verifyRegisterOtp({ email, otp }) {
+  const response = await api.post("/api/auth/verify-register-otp", {
+    email,
+    otp,
+  });
+  return response.data;
+}
+
 export async function login({ identifier, password }) {
   const response = await api.post("/api/auth/login", {
     identifier,

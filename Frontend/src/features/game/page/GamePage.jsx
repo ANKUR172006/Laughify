@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import gsap from "gsap";
-import { ArrowLeft, Smile } from "lucide-react";
+import { ArrowLeft, Camera, Smile, Volume2 } from "lucide-react";
 import FaceExpression from "../../components/FaceExpression";
 import { useGameContext } from "../context/GameContext";
 import { useAuthContext } from "../../auth/authContext";
@@ -22,6 +22,7 @@ export default function GamePage() {
   const { user } = useAuthContext();
 
   const [videoUrl, setVideoUrl] = useState("");
+  const [videoLoadNonce, setVideoLoadNonce] = useState(0);
   const [isLoadingVideo, setIsLoadingVideo] = useState(true);
   const [isVideoReady, setIsVideoReady] = useState(false);
   const [videoError, setVideoError] = useState("");
@@ -31,8 +32,10 @@ export default function GamePage() {
     eyesOnScreen: { isOnScreen: true },
     faceDetected: false,
     cameraActive: false,
+    cameraError: "",
     loadingModel: true,
   });
+  const [volumeConfirmed, setVolumeConfirmed] = useState(false);
 
   const [gameState, setGameState] = useState({
     isPlaying: false,
@@ -47,6 +50,7 @@ export default function GamePage() {
   const lookAwayTimerRef = useRef(null);
   const hasCapturedPhoto = useRef(false);
   const isTransitioningRef = useRef(false);
+  const videoReadyRef = useRef(false);
 
   // Refs for animations
   const levelRef = useRef(null);
@@ -70,13 +74,17 @@ export default function GamePage() {
 
   // Fetch video for current level
   useEffect(() => {
+    setVolumeConfirmed(false);
+
     async function fetchVideo() {
       setIsLoadingVideo(true);
       setIsVideoReady(false);
+      videoReadyRef.current = false;
       setVideoError("");
       try {
         const data = await getVideoByLevel(currentLevel);
         setVideoUrl(data.videoUrl || "");
+        setVideoLoadNonce((nonce) => nonce + 1);
       } catch (error) {
         console.error("Failed to fetch video:", error);
         setVideoUrl("");
@@ -91,6 +99,7 @@ export default function GamePage() {
   useEffect(() => {
     if (!videoUrl) return;
     setIsVideoReady(false);
+    videoReadyRef.current = false;
     setVideoError("");
     if (videoRef.current) {
       try {
@@ -100,10 +109,10 @@ export default function GamePage() {
     }
 
     const timeoutId = setTimeout(() => {
-      if (!isTransitioningRef.current && !hasCapturedPhoto.current) {
+      if (!videoReadyRef.current && !isTransitioningRef.current && !hasCapturedPhoto.current) {
         setVideoError((prev) => prev || "Video taking too long to load. Tap retry.");
       }
-    }, 8000);
+    }, 15000);
 
     return () => clearTimeout(timeoutId);
   }, [videoUrl]);
@@ -227,7 +236,18 @@ export default function GamePage() {
 
   // Update detection state
   const updateDetectionState = useCallback((state) => {
-    setDetectionState(state);
+    setDetectionState((prev) => {
+      const smileChanged = Math.abs((state.smileIntensity ?? 0) - (prev.smileIntensity ?? 0)) >= 2;
+      const statusChanged =
+        state.faceDetected !== prev.faceDetected ||
+        state.cameraActive !== prev.cameraActive ||
+        state.cameraError !== prev.cameraError ||
+        state.loadingModel !== prev.loadingModel ||
+        state.eyesOpen?.isOpen !== prev.eyesOpen?.isOpen ||
+        state.eyesOnScreen?.isOnScreen !== prev.eyesOnScreen?.isOnScreen;
+
+      return smileChanged || statusChanged ? state : prev;
+    });
   }, []);
 
   // Start game
@@ -242,7 +262,11 @@ export default function GamePage() {
       videoRef.current.currentTime = 0;
       videoRef.current.playsInline = true;
       videoRef.current.muted = false;
-      videoRef.current.play();
+      videoRef.current.play().catch(() => {
+        setVideoError("Video could not start. Tap retry.");
+        setGameState({ isPlaying: false });
+        setIsGameActive(false);
+      });
     }
 
     // GSAP animations for start
@@ -321,7 +345,15 @@ export default function GamePage() {
     return () => clearLossTimers();
   }, [clearLossTimers]);
 
-  const canStartGame = !isLoadingVideo && isVideoReady && detectionState.cameraActive && !detectionState.loadingModel;
+  const cameraReady = detectionState.cameraActive && !detectionState.loadingModel && !detectionState.cameraError;
+  const canStartGame = !isLoadingVideo && isVideoReady && cameraReady && volumeConfirmed;
+  const startButtonLabel = (() => {
+    if (!isVideoReady) return "Video Loading";
+    if (detectionState.cameraError) return "Allow Camera";
+    if (!cameraReady) return "Camera Warming Up";
+    if (!volumeConfirmed) return "Confirm Volume";
+    return "Start Level";
+  })();
 
   return (
     <div className="game-page">
@@ -364,9 +396,13 @@ export default function GamePage() {
             onClick={() => {
               setIsLoadingVideo(true);
               setIsVideoReady(false);
+              videoReadyRef.current = false;
               setVideoError("");
               getVideoByLevel(currentLevel)
-                .then((data) => setVideoUrl(data.videoUrl || ""))
+                .then((data) => {
+                  setVideoUrl(data.videoUrl || "");
+                  setVideoLoadNonce((nonce) => nonce + 1);
+                })
                 .catch(() => setVideoError("Video failed to load. Tap retry."))
                 .finally(() => setIsLoadingVideo(false));
             }}
@@ -376,21 +412,24 @@ export default function GamePage() {
         </div>
       ) : (
         <video
-          key={`${currentLevel}-${videoUrl}`}
+          key={`${currentLevel}-${videoLoadNonce}-${videoUrl}`}
           ref={videoRef}
           className="fullscreen-video"
           src={videoUrl}
           onEnded={handleVideoEnd}
           playsInline
           preload="auto"
-          onLoadedData={() => setIsVideoReady(true)}
-          onCanPlay={() => setIsVideoReady(true)}
+          onCanPlay={() => {
+            videoReadyRef.current = true;
+            setIsVideoReady(true);
+            setVideoError("");
+          }}
           onError={() => setVideoError("Video failed to load. Tap retry.")}
         />
       )}
 
       {/* Start screen overlay */}
-      {!gameState.isPlaying && !isLoadingVideo && !isTransitioning && (
+      {!gameState.isPlaying && !isLoadingVideo && !videoError && !isTransitioning && (
         <div ref={startScreenRef} className="start-screen-overlay">
           <div className="start-screen-content glass-card">
             <div className="level-preview">Level {currentLevel}</div>
@@ -402,12 +441,29 @@ export default function GamePage() {
                 <li>Keep your face and eyes on camera</li>
               </ul>
             </div>
+
+            <div className="preflight-checks">
+              <div className={`preflight-item ${cameraReady ? "ready" : "waiting"}`}>
+                <Camera size={20} />
+                <span>{detectionState.cameraError || (cameraReady ? "Camera ready" : "Allow camera permission")}</span>
+              </div>
+              <label className={`preflight-item preflight-checkbox ${volumeConfirmed ? "ready" : "waiting"}`}>
+                <input
+                  type="checkbox"
+                  checked={volumeConfirmed}
+                  onChange={(event) => setVolumeConfirmed(event.target.checked)}
+                />
+                <Volume2 size={20} />
+                <span>Mobile volume is at least 70%</span>
+              </label>
+            </div>
+
             <button
               className="start-game-btn btn-primary"
               onClick={startGame}
               disabled={!canStartGame}
             >
-              {canStartGame ? "Start Level" : "Camera Warming Up"}
+              {startButtonLabel}
             </button>
           </div>
         </div>

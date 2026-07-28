@@ -9,6 +9,7 @@ const FaceExpression = forwardRef(function FaceExpression({ className = "", onDe
     isCalibrating,
     calibrationCountdown,
     cameraActive,
+    cameraError,
     loadingModel,
     smileIntensity,
     eyesOpen,
@@ -30,6 +31,7 @@ const FaceExpression = forwardRef(function FaceExpression({ className = "", onDe
         eyesOnScreen,
         faceDetected,
         cameraActive,
+        cameraError,
         loadingModel
       });
     }
@@ -39,6 +41,7 @@ const FaceExpression = forwardRef(function FaceExpression({ className = "", onDe
     eyesOnScreen,
     faceDetected,
     cameraActive,
+    cameraError,
     loadingModel,
     onDetectionUpdate
   ]);
@@ -62,6 +65,12 @@ const FaceExpression = forwardRef(function FaceExpression({ className = "", onDe
           <div className="loader">
             <div className="loader-spinner"></div>
             <p className="loader-text">Loading AI...</p>
+          </div>
+        )}
+
+        {cameraError && !loadingModel && (
+          <div className="loader">
+            <p className="loader-text">{cameraError}</p>
           </div>
         )}
 

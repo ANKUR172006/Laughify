@@ -16,7 +16,9 @@ export const useFaceDetection = () => {
   const faceLandmarkerRef = useRef(null);
   const animationRef = useRef(null);
   const streamRef = useRef(null);
+  const canvasContextRef = useRef(null);
   const lastFrameTimeRef = useRef(0);
+  const lastUiUpdateTimeRef = useRef(0);
   const calibrationIntervalRef = useRef(null);
 
   const stateRef = useRef({
@@ -46,6 +48,7 @@ export const useFaceDetection = () => {
   const [calibrationCountdown, setCalibrationCountdown] = useState(0);
   const [activeBlendshapes, setActiveBlendshapes] = useState({});
   const [cameraActive, setCameraActive] = useState(false);
+  const [cameraError, setCameraError] = useState("");
   const [loadingModel, setLoadingModel] = useState(true);
   const [smileIntensity, setSmileIntensity] = useState(0);
   const [eyesOpen, setEyesOpen] = useState({ isOpen: true, score: 1 });
@@ -69,7 +72,7 @@ export const useFaceDetection = () => {
         }
 
         const now = performance.now();
-        if (now - lastFrameTimeRef.current < 33) {
+        if (now - lastFrameTimeRef.current < 66) {
           animationRef.current = requestAnimationFrame(detect);
           return;
         }
@@ -85,7 +88,8 @@ export const useFaceDetection = () => {
           canvas.height = displayedHeight;
         }
 
-        const ctx = canvas.getContext("2d");
+        const ctx = canvasContextRef.current ?? canvas.getContext("2d");
+        canvasContextRef.current = ctx;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         const result = faceLandmarkerRef.current.detectForVideo(video, now);
         const hasFace = result.faceBlendshapes?.length && result.faceLandmarks?.length;
@@ -97,7 +101,7 @@ export const useFaceDetection = () => {
         } else if (!stateRef.current.lastFaceDetected || currentTime - stateRef.current.lastFaceDetected >= 1000) {
           stateRef.current.faceDetectedSince = null;
         }
-        setFaceDetected(stateRef.current.faceDetectedSince !== null);
+        const shouldUpdateUi = currentTime - lastUiUpdateTimeRef.current >= 100;
 
         const processed = processFaceDetection(result, stateRef.current.calibration, stateRef.current);
 
@@ -140,31 +144,39 @@ export const useFaceDetection = () => {
           const maEyesOnScreen = MovingAverage(stateRef.current.eyesOnScreenHistory, 6);
           stateRef.current.smoothedEyesOnScreen = maEyesOnScreen > 0.5;
 
-          setSmileIntensity(finalSmilePercent);
-          setEyesOpen({
-            ...processed.eyesOpen,
-            score: stateRef.current.smoothedEyesOpen,
-            isOpen: stateRef.current.smoothedEyesOpen > 0.4
-          });
-          setEyesOnScreen({
-            ...processed.eyesOnScreen,
-            isOnScreen: stateRef.current.smoothedEyesOnScreen
-          });
-          setActiveBlendshapes(processed.activeBlendshapes);
-          setExpression(processed.expression);
-          setConfidence(processed.confidence);
-          setValence(processed.valence);
-          setArousal(processed.arousal);
+          if (shouldUpdateUi) {
+            lastUiUpdateTimeRef.current = currentTime;
+            setFaceDetected(stateRef.current.faceDetectedSince !== null);
+            setSmileIntensity(finalSmilePercent);
+            setEyesOpen({
+              ...processed.eyesOpen,
+              score: stateRef.current.smoothedEyesOpen,
+              isOpen: stateRef.current.smoothedEyesOpen > 0.4
+            });
+            setEyesOnScreen({
+              ...processed.eyesOnScreen,
+              isOnScreen: stateRef.current.smoothedEyesOnScreen
+            });
+            setActiveBlendshapes(processed.activeBlendshapes);
+            setExpression(processed.expression);
+            setConfidence(processed.confidence);
+            setValence(processed.valence);
+            setArousal(processed.arousal);
 
-          const newAccentColor = EMOTION_COLORS[getEmotionName(processed.expression)] || "#6366f1";
-          setAccentColor(newAccentColor);
+            const newAccentColor = EMOTION_COLORS[getEmotionName(processed.expression)] || "#6366f1";
+            setAccentColor(newAccentColor);
+          }
         } else {
-          setExpression(processed.expression);
-          setConfidence(processed.confidence);
-          setValence(processed.valence);
-          setArousal(processed.arousal);
-          setActiveBlendshapes(processed.activeBlendshapes);
-          setSmileIntensity(processed.smileIntensity);
+          if (shouldUpdateUi) {
+            lastUiUpdateTimeRef.current = currentTime;
+            setFaceDetected(stateRef.current.faceDetectedSince !== null);
+            setExpression(processed.expression);
+            setConfidence(processed.confidence);
+            setValence(processed.valence);
+            setArousal(processed.arousal);
+            setActiveBlendshapes(processed.activeBlendshapes);
+            setSmileIntensity(processed.smileIntensity);
+          }
         }
 
         animationRef.current = requestAnimationFrame(detect);
@@ -176,11 +188,12 @@ export const useFaceDetection = () => {
     const init = async () => {
       try {
         setLoadingModel(true);
+        setCameraError("");
 
         const [model, stream] = await Promise.all([
           initializeFaceLandmarker(),
           navigator.mediaDevices.getUserMedia({
-            video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: "user" }
+            video: { width: { ideal: 480 }, height: { ideal: 360 }, facingMode: "user" }
           })
         ]);
 
@@ -204,7 +217,14 @@ export const useFaceDetection = () => {
         startDetectionLoop();
       } catch (err) {
         console.error("Init failed:", err);
-        setExpression("Error loading camera/model");
+        const permissionDenied = err?.name === "NotAllowedError" || err?.name === "PermissionDeniedError";
+        setCameraError(
+          permissionDenied
+            ? "Camera permission is blocked. Allow camera access to play."
+            : "Camera or AI model failed to load. Please refresh and try again."
+        );
+        setExpression(permissionDenied ? "Camera permission needed" : "Error loading camera/model");
+        setCameraActive(false);
         setLoadingModel(false);
       }
     };
@@ -257,6 +277,7 @@ export const useFaceDetection = () => {
     calibrationCountdown,
     activeBlendshapes,
     cameraActive,
+    cameraError,
     loadingModel,
     smileIntensity,
     eyesOpen,

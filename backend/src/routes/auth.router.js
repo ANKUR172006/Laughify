@@ -5,6 +5,7 @@ const authController=require("../controllers/auth.controllers")
 const authMiddleware=require("../middleware/auth.middleware")
 
 authRouter.post("/register",authController.registerController);
+authRouter.post("/verify-register-otp", authController.verifyRegisterOtpController);
 authRouter.post("/login",authController.loginController);
 authRouter.post("/google", authController.googleAuthController);
 authRouter.get("/get-me",authMiddleware.authUser,authController.getMe);
