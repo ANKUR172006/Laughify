@@ -502,6 +502,33 @@
   z-index: 3;
 }
 
+.google-login-wrap {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1rem;
+  position: relative;
+  z-index: 3;
+}
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  margin-bottom: 1rem;
+  color: #64748b;
+  position: relative;
+  z-index: 3;
+
+  div {
+    flex: 1;
+    height: 1px;
+    background-color: #cbd5e1;
+  }
+
+  span {
+    padding: 0 1rem;
+  }
+}
+
 @keyframes rainbowShiftLogin {
   0%, 100% { background-position: 0% 50%; }
   50% { background-position: 100% 50%; }

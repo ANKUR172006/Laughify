@@ -2,6 +2,11 @@ import React, { useRef, useMemo } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
+const seededPosition = (index) => {
+  const value = Math.sin(index * 12.9898) * 43758.5453;
+  return (value - Math.floor(value) - 0.5) * 30;
+};
+
 const Particles = () => {
   const mesh = useRef();
   const particlesCount = 200; // Even fewer particles for better mobile performance
@@ -9,9 +14,9 @@ const Particles = () => {
   const particlesPosition = useMemo(() => {
     const positions = new Float32Array(particlesCount * 3);
     for (let i = 0; i < particlesCount; i++) {
-      positions[i * 3] = (Math.random() - 0.5) * 30;
-      positions[i * 3 + 1] = (Math.random() - 0.5) * 30;
-      positions[i * 3 + 2] = (Math.random() - 0.5) * 30;
+      positions[i * 3] = seededPosition(i * 3 + 1);
+      positions[i * 3 + 1] = seededPosition(i * 3 + 2);
+      positions[i * 3 + 2] = seededPosition(i * 3 + 3);
     }
     return positions;
   }, []);

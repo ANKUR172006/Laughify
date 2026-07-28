@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { AnimatePresence, motion } from "framer-motion"; // eslint-disable-line no-unused-vars
 import gsap from "gsap";
 import {
@@ -137,53 +137,50 @@ const FeedbackModal = ({ isOpen, onClose, user }) => {
   });
   const confettiContainerRef = useRef(null);
   const modalInnerRef = useRef(null);
+  const resetTimerRef = useRef(null);
+
+  const loadFeedbackSummary = useCallback(async ({ silent = false } = {}) => {
+    if (!silent) setLoading(true);
+    setLoadError(null);
+
+    try {
+      const [fbRes, statsRes] = await Promise.all([
+        getPublicFeedback().catch(() => ({ success: false, feedback: [] })),
+        getFeedbackStats().catch(() => ({
+          success: false,
+          stats: { totalFeedbackCount: 0, publicReviewCount: 0, avgRating: 0, totalLikes: 0 }
+        }))
+      ]);
+
+      if (fbRes && fbRes.success && Array.isArray(fbRes.feedback)) {
+        const { normalized, likedSet } = normalizeServerItems(fbRes.feedback);
+        setLocalTestimonials(normalized);
+        setLikedIds(likedSet);
+      } else {
+        setLocalTestimonials([]);
+        setLikedIds(new Set());
+      }
+
+      if (statsRes && statsRes.success && statsRes.stats) {
+        setStats({
+          totalFeedbackCount: Number(statsRes.stats.totalFeedbackCount) || 0,
+          publicReviewCount: Number(statsRes.stats.publicReviewCount) || 0,
+          avgRating: Number(statsRes.stats.avgRating) || 0,
+          totalLikes: Number(statsRes.stats.totalLikes) || 0
+        });
+      }
+    } catch {
+      setLoadError("Couldn't load reviews right now.");
+    } finally {
+      if (!silent) setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     if (!isOpen) return;
-    let cancelled = false;
-
-    (async () => {
-      setLoading(true);
-      setLoadError(null);
-      try {
-        const [fbRes, statsRes] = await Promise.all([
-          getPublicFeedback().catch(() => ({ success: false, feedback: [] })),
-          getFeedbackStats().catch(() => ({
-            success: false,
-            stats: { totalFeedbackCount: 0, publicReviewCount: 0, avgRating: 0, totalLikes: 0 }
-          }))
-        ]);
-
-        if (cancelled) return;
-
-        if (fbRes && fbRes.success && Array.isArray(fbRes.feedback)) {
-          const { normalized, likedSet } = normalizeServerItems(fbRes.feedback);
-          setLocalTestimonials(normalized);
-          setLikedIds(likedSet);
-        } else {
-          setLocalTestimonials([]);
-          setLikedIds(new Set());
-        }
-
-        if (statsRes && statsRes.success && statsRes.stats) {
-          setStats({
-            totalFeedbackCount: Number(statsRes.stats.totalFeedbackCount) || 0,
-            publicReviewCount: Number(statsRes.stats.publicReviewCount) || 0,
-            avgRating: Number(statsRes.stats.avgRating) || 0,
-            totalLikes: Number(statsRes.stats.totalLikes) || 0
-          });
-        }
-      } catch (err) {
-        if (!cancelled) setLoadError("Couldn't load reviews right now.");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [isOpen, activeTab]);
+    const timer = window.setTimeout(loadFeedbackSummary, 0);
+    return () => window.clearTimeout(timer);
+  }, [isOpen, loadFeedbackSummary]);
 
   useEffect(() => {
     if (isOpen) {
@@ -199,6 +196,7 @@ const FeedbackModal = ({ isOpen, onClose, user }) => {
   useEffect(() => {
     if (submitted && confettiContainerRef.current) {
       const container = confettiContainerRef.current;
+      const timers = [];
       for (let i = 0; i < 25; i++) {
         const el = document.createElement("div");
         el.className = "confetti-piece";
@@ -215,10 +213,23 @@ const FeedbackModal = ({ isOpen, onClose, user }) => {
         el.style.animationDelay = Math.random() * 0.5 + "s";
         el.style.animationDuration = 2 + Math.random() * 1.5 + "s";
         container.appendChild(el);
-        setTimeout(() => el.remove(), 4000);
+        timers.push(window.setTimeout(() => el.remove(), 4000));
       }
+
+      return () => {
+        timers.forEach(window.clearTimeout);
+        container.querySelectorAll(".confetti-piece").forEach((el) => el.remove());
+      };
     }
   }, [submitted]);
+
+  useEffect(() => {
+    return () => {
+      if (resetTimerRef.current) {
+        window.clearTimeout(resetTimerRef.current);
+      }
+    };
+  }, []);
 
   const handleRatingClick = (value) => {
     setRating(value);
@@ -236,7 +247,6 @@ const FeedbackModal = ({ isOpen, onClose, user }) => {
     e.preventDefault();
     if (rating === 0 || submitting) return;
 
-    const timestamp = new Date().toISOString();
     const avatar = funEmojis[Math.floor(Math.random() * funEmojis.length)];
     const payload = {
       name: formData.name || "Anonymous Friend",
@@ -275,8 +285,11 @@ const FeedbackModal = ({ isOpen, onClose, user }) => {
         setStats((s) => ({ ...s, totalFeedbackCount: s.totalFeedbackCount + 1 }));
       }
       setSubmitted(true);
+      if (resetTimerRef.current) {
+        window.clearTimeout(resetTimerRef.current);
+      }
 
-      setTimeout(() => {
+      resetTimerRef.current = window.setTimeout(() => {
         setSubmitted(false);
         setRating(0);
         setFormData({
@@ -291,6 +304,7 @@ const FeedbackModal = ({ isOpen, onClose, user }) => {
         } else {
           setActiveTab("rate");
         }
+        resetTimerRef.current = null;
       }, 3200);
     } catch (err) {
       const msg =
@@ -339,7 +353,7 @@ const FeedbackModal = ({ isOpen, onClose, user }) => {
           totalLikes: Math.max(0, (s.totalLikes || 0) + (res.liked ? 1 : -1))
         }));
       }
-    } catch (err) {
+    } catch {
       setLikedIds((prev) => {
         const next = new Set(prev);
         if (wasLiked) next.add(id);
@@ -384,24 +398,15 @@ const FeedbackModal = ({ isOpen, onClose, user }) => {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.2 }}
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(15, 23, 42, 0.55)",
-            backdropFilter: "blur(8px)",
-            zIndex: 9999,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: "20px",
-            overflowY: "auto"
-          }}
         >
           <motion.div
             key="modal"
             className="feedback-modal"
             ref={modalInnerRef}
             onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="feedback-modal-title"
             initial={{ opacity: 0, scale: 0.5, y: 60, rotate: -4 }}
             animate={{ opacity: 1, scale: 1, y: 0, rotate: 0 }}
             exit={{ opacity: 0, scale: 0.6, y: 40, rotate: 4 }}
@@ -409,7 +414,7 @@ const FeedbackModal = ({ isOpen, onClose, user }) => {
           >
             <div ref={confettiContainerRef} className="confetti-container"></div>
 
-            <button className="feedback-close-btn" onClick={onClose}>
+            <button className="feedback-close-btn" onClick={onClose} aria-label="Close feedback modal">
               <X size={22} />
             </button>
 
@@ -418,7 +423,7 @@ const FeedbackModal = ({ isOpen, onClose, user }) => {
                 <MessageSquareHeart size={38} />
               </div>
               <div>
-                <h2 className="feedback-title">
+                <h2 className="feedback-title" id="feedback-modal-title">
                   <span className="gradient-text">Share the Joy!</span>
                 </h2>
                 <p className="feedback-subtitle">
@@ -471,6 +476,7 @@ const FeedbackModal = ({ isOpen, onClose, user }) => {
                             onMouseEnter={() => setHoverRating(n)}
                             onMouseLeave={() => setHoverRating(0)}
                             onClick={() => handleRatingClick(n)}
+                            aria-label={`Rate ${n} star${n === 1 ? "" : "s"}`}
                           >
                             <Star
                               size={50}
@@ -749,6 +755,13 @@ const FeedbackModal = ({ isOpen, onClose, user }) => {
                       <p className="wall-empty-desc">
                         The server might be offline. Make sure the Laughify backend is running!
                       </p>
+                      <button
+                        type="button"
+                        className="btn-primary wall-empty-btn"
+                        onClick={() => loadFeedbackSummary()}
+                      >
+                        <Sparkles size={18} /> Try Again
+                      </button>
                     </div>
                   ) : localTestimonials.length === 0 ? (
                     <div className="feedback-section wall-empty glass-card">
@@ -759,10 +772,10 @@ const FeedbackModal = ({ isOpen, onClose, user }) => {
                         and your story will appear right here. 100% real reviews from real
                         players only — zero fluff, zero fakes. 🚫🧢
                       </p>
-                      <button
-                        className="btn-primary wall-empty-btn"
-                        onClick={() => setActiveTab("rate")}
-                      >
+                        <button
+                          className="btn-primary wall-empty-btn"
+                          onClick={() => setActiveTab("rate")}
+                        >
                         <Star size={18} /> Write the First Review
                       </button>
                     </div>
@@ -806,6 +819,7 @@ const FeedbackModal = ({ isOpen, onClose, user }) => {
                             <button
                               className={`like-btn ${likedIds.has(t.id) ? "liked" : ""}`}
                               onClick={() => toggleLike(t.id)}
+                              aria-label={`${likedIds.has(t.id) ? "Unlike" : "Like"} ${t.name}'s review`}
                             >
                               <ThumbsUp size={16} />
                               <span>{t.likes}</span>

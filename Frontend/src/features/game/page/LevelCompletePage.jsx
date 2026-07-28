@@ -5,6 +5,9 @@ import gsap from "gsap";
 import { Trophy, ArrowRight, Home, Sparkles } from "lucide-react";
 import "../styles/LevelCompletePage.scss";
 
+const MotionDiv = motion.div;
+const MotionButton = motion.button;
+
 export default function LevelCompletePage() {
   const navigate = useNavigate();
   const containerRef = useRef(null);
@@ -39,7 +42,7 @@ export default function LevelCompletePage() {
     <div className="level-complete-page">
       {/* Animated sparkles */}
       {[...Array(8)].map((_, i) => (
-        <motion.div
+        <MotionDiv
           key={i}
           className="sparkle"
           custom={i}
@@ -52,15 +55,15 @@ export default function LevelCompletePage() {
           }}
         >
           <Sparkles size={24 + i * 4} />
-        </motion.div>
+        </MotionDiv>
       ))}
 
       <div className="level-complete-container">
-        <motion.div
+        <MotionDiv
           ref={containerRef}
           className="level-complete-content glass-card"
         >
-          <motion.div
+          <MotionDiv
             className="trophy-icon"
             animate={{
               rotate: [0, 5, -5, 0],
@@ -73,7 +76,7 @@ export default function LevelCompletePage() {
             }}
           >
             <Trophy size={80} strokeWidth={1.5} />
-          </motion.div>
+          </MotionDiv>
           
           <h1 className="level-complete-title gradient-text">
             Level Complete!
@@ -84,7 +87,7 @@ export default function LevelCompletePage() {
           </p>
 
           <div className="level-complete-buttons">
-            <motion.button
+            <MotionButton
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               className="next-level-btn btn-primary"
@@ -92,8 +95,8 @@ export default function LevelCompletePage() {
             >
               <ArrowRight size={22} />
               Next Level
-            </motion.button>
-            <motion.div
+            </MotionButton>
+            <MotionDiv
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
@@ -104,9 +107,9 @@ export default function LevelCompletePage() {
                 <Home size={22} />
                 Home
               </Link>
-            </motion.div>
+            </MotionDiv>
           </div>
-        </motion.div>
+        </MotionDiv>
       </div>
     </div>
   );

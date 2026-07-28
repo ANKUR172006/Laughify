@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import gsap from "gsap";
-import { motion } from "framer-motion";
 import { Clock, LogOut, MessageSquareHeart, Smile, User, Zap } from "lucide-react";
 import { useAuthContext } from "../../auth/authContext";
 import { useAuth } from "../../auth/hooks/useAuth";
@@ -89,7 +88,7 @@ const HomePage = () => {
   return (
     <div className="homepage-container" ref={containerRef}>
       {/* Navigation */}
-      <motion.nav className="navbar" ref={navRef}>
+      <nav className="navbar" ref={navRef}>
         <div className="nav-inner">
           <div className="logo">
             <span className="logo-text">LAUGHIFY</span>
@@ -104,6 +103,7 @@ const HomePage = () => {
                   className="btn-nav btn-feedback"
                   onClick={openFeedback}
                   title="Share your feedback!"
+                  aria-label="Share feedback"
                 >
                   <MessageSquareHeart size={18} />
                 </button>
@@ -117,7 +117,7 @@ const HomePage = () => {
                   </div>
                   <span className="username">{user.username}</span>
                 </div>
-                <button className="btn-nav" onClick={handleLogout}>
+                <button className="btn-nav" onClick={handleLogout} aria-label="Log out" title="Log out">
                   <LogOut size={18} />
                 </button>
               </div>
@@ -127,6 +127,7 @@ const HomePage = () => {
                   className="btn-nav btn-feedback"
                   onClick={openFeedback}
                   title="Share your feedback!"
+                  aria-label="Share feedback"
                 >
                   <MessageSquareHeart size={18} />
                 </button>
@@ -139,7 +140,7 @@ const HomePage = () => {
             )}
           </div>
         </div>
-      </motion.nav>
+      </nav>
 
       {/* Main Content */}
       <main className="main-content">
@@ -188,17 +189,15 @@ const HomePage = () => {
         {/* Features */}
         <section className="features-grid">
           {features.map((feature, index) => (
-            <motion.div
+            <div
               key={index}
               ref={(el) => (featuresRef.current[index] = el)}
               className="feature-card"
-              whileHover={{ y: -8, scale: 1.02 }}
-              transition={{ type: "spring", stiffness: 300 }}
             >
               <div className="feature-icon">{feature.icon}</div>
               <h3 className="feature-title">{feature.title}</h3>
               <p className="feature-desc">{feature.description}</p>
-            </motion.div>
+            </div>
           ))}
         </section>
 

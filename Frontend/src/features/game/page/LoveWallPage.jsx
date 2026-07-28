@@ -11,6 +11,8 @@ import {
 } from "../../shared/service/feedback.api";
 import "../styles/LoveWallPage.scss";
 
+const MotionArticle = motion.article;
+
 const formatRelativeDate = (iso) => {
   try {
     const diff = Date.now() - new Date(iso).getTime();
@@ -104,7 +106,8 @@ export default function LoveWallPage() {
   }, []);
 
   useEffect(() => {
-    loadLoveWall();
+    const timer = window.setTimeout(loadLoveWall, 0);
+    return () => window.clearTimeout(timer);
   }, [loadLoveWall]);
 
   const openFeedback = useCallback(() => {
@@ -232,7 +235,7 @@ export default function LoveWallPage() {
         ) : (
           <div className="love-wall-grid">
             {reviews.map((review, index) => (
-              <motion.article
+              <MotionArticle
                 key={review.id}
                 className={`love-review-card ${review.verified ? "verified" : ""}`}
                 initial={{ opacity: 0, y: 24 }}
@@ -273,7 +276,7 @@ export default function LoveWallPage() {
                   <ThumbsUp size={16} />
                   {review.likes}
                 </button>
-              </motion.article>
+              </MotionArticle>
             ))}
           </div>
         )}

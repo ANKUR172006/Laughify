@@ -1,5 +1,5 @@
 import Protected from "./features/auth/components/Protected";
-import { createBrowserRouter, Outlet, useLocation } from "react-router-dom";
+import { createBrowserRouter } from "react-router-dom";
 import Login from "./features/auth/page/Login";
 import Register from "./features/auth/page/Register";
 import HomePage from "./features/game/page/HomePage";
@@ -9,19 +9,7 @@ import LevelCompletePage from "./features/game/page/LevelCompletePage";
 import ProfilePage from "./features/game/page/ProfilePage";
 import LeaderboardPage from "./features/game/page/LeaderboardPage";
 import LoveWallPage from "./features/game/page/LoveWallPage";
-import Scene3D from "./features/shared/components/Scene3D";
-
-function RootLayout() {
-  const location = useLocation();
-  const show3DScene = !['/login', '/register', '/game'].includes(location.pathname);
-
-  return (
-    <>
-      {show3DScene && <Scene3D />}
-      <Outlet />
-    </>
-  );
-}
+import RootLayout from "./RootLayout";
 
 export const router = createBrowserRouter([
   {

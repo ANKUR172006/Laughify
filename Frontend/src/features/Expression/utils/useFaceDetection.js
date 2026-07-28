@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import {
   EMOTION_COLORS,
   initializeFaceLandmarker,
-  renderFaceMesh,
   processFaceDetection,
   createDefaultCalibration,
   EMA,
@@ -86,15 +85,8 @@ export const useFaceDetection = () => {
           canvas.height = displayedHeight;
         }
 
-        const videoNativeWidth = video.videoWidth || displayedWidth;
-        const videoNativeHeight = video.videoHeight || displayedHeight;
-        const scaleFactor = Math.max(displayedWidth / videoNativeWidth, displayedHeight / videoNativeHeight);
-        const scaledVideoWidth = videoNativeWidth * scaleFactor;
-        const scaledVideoHeight = videoNativeHeight * scaleFactor;
-        const offsetX = (displayedWidth - scaledVideoWidth) / 2;
-        const offsetY = (displayedHeight - scaledVideoHeight) / 2;
-
         const ctx = canvas.getContext("2d");
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
         const result = faceLandmarkerRef.current.detectForVideo(video, now);
         const hasFace = result.faceBlendshapes?.length && result.faceLandmarks?.length;
 
@@ -166,8 +158,6 @@ export const useFaceDetection = () => {
 
           const newAccentColor = EMOTION_COLORS[getEmotionName(processed.expression)] || "#6366f1";
           setAccentColor(newAccentColor);
-
-          renderFaceMesh(ctx, canvas, processed.landmarks, newAccentColor, scaledVideoWidth, scaledVideoHeight, offsetX, offsetY);
         } else {
           setExpression(processed.expression);
           setConfidence(processed.confidence);
@@ -175,7 +165,6 @@ export const useFaceDetection = () => {
           setArousal(processed.arousal);
           setActiveBlendshapes(processed.activeBlendshapes);
           setSmileIntensity(processed.smileIntensity);
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
         }
 
         animationRef.current = requestAnimationFrame(detect);

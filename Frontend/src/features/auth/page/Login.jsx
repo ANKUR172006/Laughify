@@ -3,7 +3,6 @@ import "../styles/Login.scss";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { GoogleLogin } from "@react-oauth/google";
-import gsap from "gsap";
 import { ArrowLeft, Eye, EyeOff } from "lucide-react";
 
 function Login() {
@@ -21,6 +20,7 @@ function Login() {
   const eyeBallLeftRef = useRef(null);
   const eyeBallRightRef = useRef(null);
   const formRef = useRef(null);
+  const wrongEntryTimerRef = useRef(null);
 
   useEffect(() => {
     const handleMouseMove = (event) => {
@@ -40,8 +40,24 @@ function Login() {
     };
 
     document.addEventListener("mousemove", handleMouseMove);
-    return () => document.removeEventListener("mousemove", handleMouseMove);
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      if (wrongEntryTimerRef.current) {
+        window.clearTimeout(wrongEntryTimerRef.current);
+      }
+    };
   }, []);
+
+  const showEntryError = () => {
+    setWrongEntry(true);
+    if (wrongEntryTimerRef.current) {
+      window.clearTimeout(wrongEntryTimerRef.current);
+    }
+    wrongEntryTimerRef.current = window.setTimeout(() => {
+      setWrongEntry(false);
+      wrongEntryTimerRef.current = null;
+    }, 3000);
+  };
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -54,8 +70,7 @@ function Login() {
     } catch (err) {
       console.error(err);
       setError(err.message || "Login failed. Please try again.");
-      setWrongEntry(true);
-      setTimeout(() => setWrongEntry(false), 3000);
+      showEntryError();
     }
   }
 
@@ -66,14 +81,13 @@ function Login() {
     } catch (err) {
       console.error(err);
       setError(err.message || "Google login failed. Please try again.");
-      setWrongEntry(true);
-      setTimeout(() => setWrongEntry(false), 3000);
+      showEntryError();
     }
   };
 
   return (
     <div className="auth-container" ref={containerRef}>
-      <button className="back-button" onClick={() => navigate("/")}>
+      <button className="back-button" onClick={() => navigate("/")} aria-label="Back to home">
         <ArrowLeft size={20} />
       </button>
 
@@ -108,32 +122,32 @@ function Login() {
         
         {error && <div className="alert">{error}</div>}
 
-        <div style={{ display: "flex", justifyContent: "center", marginBottom: "1rem" }}>
+        <div className="google-login-wrap">
           <GoogleLogin
             onSuccess={onGoogleSuccess}
             onError={() => {
               setError("Google login failed. Please try again.");
-              setWrongEntry(true);
-              setTimeout(() => setWrongEntry(false), 3000);
+              showEntryError();
             }}
           />
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", marginBottom: "1rem", color: "#aaa" }}>
-          <div style={{ flex: 1, height: "1px", backgroundColor: "#ddd" }} />
-          <span style={{ padding: "0 1rem" }}>or</span>
-          <div style={{ flex: 1, height: "1px", backgroundColor: "#ddd" }} />
+        <div className="auth-divider">
+          <div />
+          <span>or</span>
+          <div />
         </div>
 
         <div className="form-group">
           <input
+            id="identifier"
             type="text"
             className="form-control"
             value={identifier}
             onChange={(e) => setIdentifier(e.target.value)}
             required
           />
-          <label className="form-label">Email or Username</label>
+          <label className="form-label" htmlFor="identifier">Email or Username</label>
         </div>
 
         <div className="form-group">
@@ -147,11 +161,12 @@ function Login() {
             onBlur={() => setIsFormUp(false)}
             required
           />
-          <label className="form-label">Password</label>
+          <label className="form-label" htmlFor="password">Password</label>
           <button
             type="button"
             className="password-toggle"
             onClick={() => setShowPassword(!showPassword)}
+            aria-label={showPassword ? "Hide password" : "Show password"}
           >
             {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
           </button>
