@@ -23,6 +23,8 @@ export default function GamePage() {
 
   const [videoUrl, setVideoUrl] = useState("");
   const [isLoadingVideo, setIsLoadingVideo] = useState(true);
+  const [isVideoReady, setIsVideoReady] = useState(false);
+  const [videoError, setVideoError] = useState("");
   const [detectionState, setDetectionState] = useState({
     smileIntensity: 0,
     eyesOpen: { isOpen: true },
@@ -70,17 +72,41 @@ export default function GamePage() {
   useEffect(() => {
     async function fetchVideo() {
       setIsLoadingVideo(true);
+      setIsVideoReady(false);
+      setVideoError("");
       try {
         const data = await getVideoByLevel(currentLevel);
-        setVideoUrl(data.videoUrl);
+        setVideoUrl(data.videoUrl || "");
       } catch (error) {
         console.error("Failed to fetch video:", error);
+        setVideoUrl("");
+        setVideoError("Video failed to load. Tap retry.");
       } finally {
         setIsLoadingVideo(false);
       }
     }
     fetchVideo();
   }, [currentLevel]);
+
+  useEffect(() => {
+    if (!videoUrl) return;
+    setIsVideoReady(false);
+    setVideoError("");
+    if (videoRef.current) {
+      try {
+        videoRef.current.load();
+      } catch (_) {
+      }
+    }
+
+    const timeoutId = setTimeout(() => {
+      if (!isTransitioningRef.current && !hasCapturedPhoto.current) {
+        setVideoError((prev) => prev || "Video taking too long to load. Tap retry.");
+      }
+    }, 8000);
+
+    return () => clearTimeout(timeoutId);
+  }, [videoUrl]);
 
   // Entrance animations (when game page first loads)
   useEffect(() => {
@@ -295,7 +321,7 @@ export default function GamePage() {
     return () => clearLossTimers();
   }, [clearLossTimers]);
 
-  const canStartGame = !isLoadingVideo && detectionState.cameraActive && !detectionState.loadingModel;
+  const canStartGame = !isLoadingVideo && isVideoReady && detectionState.cameraActive && !detectionState.loadingModel;
 
   return (
     <div className="game-page">
@@ -330,13 +356,36 @@ export default function GamePage() {
           <div className="loader-spinner" />
           <p className="loader-text">Loading video...</p>
         </div>
+      ) : videoError ? (
+        <div className="loading-screen">
+          <p className="loader-text">{videoError}</p>
+          <button
+            className="start-game-btn btn-primary"
+            onClick={() => {
+              setIsLoadingVideo(true);
+              setIsVideoReady(false);
+              setVideoError("");
+              getVideoByLevel(currentLevel)
+                .then((data) => setVideoUrl(data.videoUrl || ""))
+                .catch(() => setVideoError("Video failed to load. Tap retry."))
+                .finally(() => setIsLoadingVideo(false));
+            }}
+          >
+            Retry
+          </button>
+        </div>
       ) : (
         <video
+          key={`${currentLevel}-${videoUrl}`}
           ref={videoRef}
           className="fullscreen-video"
           src={videoUrl}
           onEnded={handleVideoEnd}
           playsInline
+          preload="auto"
+          onLoadedData={() => setIsVideoReady(true)}
+          onCanPlay={() => setIsVideoReady(true)}
+          onError={() => setVideoError("Video failed to load. Tap retry.")}
         />
       )}
 
