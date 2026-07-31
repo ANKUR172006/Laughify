@@ -175,6 +175,13 @@ function Login() {
         <button type="submit" disabled={loading} className="btn">
           {loading ? "Signing in..." : "Login"}
         </button>
+
+        <div className="privacy-note">
+          If you don’t want to share personal data, use demo login:
+          <span className="privacy-note-cred"> demo</span>
+          <span className="privacy-note-sep"> / </span>
+          <span className="privacy-note-cred">123456</span>. We respect your privacy.
+        </div>
       </form>
 
       <div className="auth-footer">

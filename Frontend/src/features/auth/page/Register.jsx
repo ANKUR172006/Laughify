@@ -262,6 +262,15 @@ function Register() {
         <button type="submit" disabled={loading} className="btn">
           {loading ? "Please wait..." : verificationSent ? "Verify & Join" : "Send Code"}
         </button>
+
+        {!verificationSent && (
+          <div className="privacy-note">
+            Prefer privacy? Skip signup and <Link to="/login">login with demo</Link>:
+            <span className="privacy-note-cred"> demo</span>
+            <span className="privacy-note-sep"> / </span>
+            <span className="privacy-note-cred">123456</span>.
+          </div>
+        )}
       </form>
 
       <div className="auth-footer">
