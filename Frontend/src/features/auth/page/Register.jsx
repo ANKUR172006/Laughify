@@ -3,7 +3,7 @@ import "../styles/Register.scss";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { GoogleLogin } from "@react-oauth/google";
-import { ArrowLeft, Eye, EyeOff, KeyRound, ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff, KeyRound, ShieldCheck, VideoOff } from "lucide-react";
 
 function Register() {
   const { loading, handleRegister, handleVerifyRegisterOtp, handleGoogleAuth, handleGuestLogin } = useAuth();
@@ -33,7 +33,7 @@ function Register() {
       const dh = window.innerHeight / 15;
       const x = event.pageX / dw;
       const y = event.pageY / dh;
-
+      
       if (eyeBallLeftRef.current) {
         eyeBallLeftRef.current.style.width = `${x}px`;
         eyeBallLeftRef.current.style.height = `${y}px`;
@@ -116,7 +116,7 @@ function Register() {
     }
   }
 
-  const handleContinueGuest = () => {
+  const handleTryGuest = () => {
     handleGuestLogin();
     navigate("/");
   };
@@ -149,12 +149,12 @@ function Register() {
           <div className="finger"></div>
         </div>
       </div>
-
+      
       <form className={`auth-form ${isFormUp ? 'up' : ''} ${wrongEntry ? 'wrong-entry' : ''}`} ref={formRef} onSubmit={handleSubmit}>
         <div className="hand"></div>
         <div className="hand rgt"></div>
-
-        <h1>{verificationSent ? "Verify Email" : "Sign Up"}</h1>
+        
+        <h1>{verificationSent ? "Verify Email" : "Register"}</h1>
 
         {!verificationSent && (
           <>
@@ -166,6 +166,10 @@ function Register() {
               <div className="trust-badge">
                 <KeyRound size={16} />
                 <span>Email code verification</span>
+              </div>
+              <div className="trust-badge">
+                <VideoOff size={16} />
+                <span>No camera in demo mode</span>
               </div>
             </div>
 
@@ -179,7 +183,7 @@ function Register() {
               onClick={handleContinueGuest}
             >
               <Sparkles size={18} />
-              Continue Without Login
+              Continue Without Registration
             </button>
 
             <div className="auth-divider">
@@ -189,7 +193,7 @@ function Register() {
             </div>
           </>
         )}
-
+        
         {error && <div className="alert">{error}</div>}
         {notice && <p className="auth-notice">{notice}</p>}
 
@@ -301,6 +305,13 @@ function Register() {
         <button type="submit" disabled={loading} className="btn">
           {loading ? "Please wait..." : verificationSent ? "Verify & Join" : "Send Code"}
         </button>
+
+        {!verificationSent && (
+          <div className="privacy-note">
+            Prefer privacy? <button type="button" className="privacy-note-link" onClick={handleTryGuest}>Try as Guest</button>.
+            Guests can preview the UI and view the leaderboard only.
+          </div>
+        )}
       </form>
 
       <div className="auth-footer">
