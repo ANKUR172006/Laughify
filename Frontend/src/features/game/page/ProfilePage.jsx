@@ -91,7 +91,7 @@ export default function ProfilePage() {
         <div className="profile-card glass-card">
           <div className="profile-avatar">
             {profile?.profilePic ? (
-              <img className="profile-avatar-img" src={profile.profilePic} alt={profile?.username || "Profile"} />
+              <img className="profile-avatar-img" src={profile.profilePic} alt={profile?.username || "Profile"} loading="lazy" decoding="async" width="96" height="96" />
             ) : (
               <User size={48} />
             )}

@@ -232,6 +232,7 @@ const FeedbackModal = ({ isOpen, onClose, user }) => {
   }, []);
 
   const handleRatingClick = (value) => {
+    if (user?.isGuest) return;
     setRating(value);
   };
 
@@ -245,6 +246,7 @@ const FeedbackModal = ({ isOpen, onClose, user }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (user?.isGuest) return;
     if (rating === 0 || submitting) return;
 
     const avatar = funEmojis[Math.floor(Math.random() * funEmojis.length)];
@@ -318,6 +320,7 @@ const FeedbackModal = ({ isOpen, onClose, user }) => {
   };
 
   const toggleLike = async (id) => {
+    if (user?.isGuest) return;
     const wasLiked = likedIds.has(id);
     setLikedIds((prev) => {
       const next = new Set(prev);

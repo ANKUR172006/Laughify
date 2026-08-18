@@ -60,7 +60,7 @@ const getVideoByLevel = async (req, res) => {
 
     const cacheToken = levelVideo.updatedAt || levelVideo.fileId || levelVideo.name;
     const cacheBustedUrl = `${videoUrl}${videoUrl.includes("?") ? "&" : "?"}v=${encodeURIComponent(cacheToken)}`;
-    res.set("Cache-Control", "no-store");
+    res.set("Cache-Control", "public, max-age=3600, stale-while-revalidate=86400");
     res.status(200).json({
       success: true,
       videoUrl: cacheBustedUrl,
@@ -132,23 +132,37 @@ const listVideos = async (req, res) => {
 
 const uploadUserPhoto = async (req, res) => {
   try {
+    if (!req.user || !req.user.id) {
+      return res.status(200).json({
+        success: true,
+        photoUrl: null,
+        fileId: null,
+        skipped: true,
+        message: "Photo not saved - guests don't have a profile",
+      });
+    }
+
     const { level, imageData } = req.body;
     const userId = req.user.id;
     
-    // Get user to retrieve username
     const user = await userModel.findById(userId);
     if (!user) {
       return res.status(404).json({ success: false, message: "User not found" });
     }
     
-    // imageData is base64 encoded
+    if (!imageData || typeof imageData !== "string" || !imageData.startsWith("data:image/")) {
+      return res.status(400).json({
+        success: false,
+        message: "Please upload a valid image file"
+      });
+    }
+    
     const uploadResult = await imagekit.upload({
-      file: imageData, // required
-      fileName: `${user.username}-laugh-level-${level}-${Date.now()}.jpg`, // required
+      file: imageData,
+      fileName: `${user.username}-laugh-level-${level}-${Date.now()}.jpg`,
       folder: "/Laughing-Faces",
     });
 
-    // Add photo to user's smilePhotos
     user.smilePhotos.push({
       url: uploadResult.url,
       level: level

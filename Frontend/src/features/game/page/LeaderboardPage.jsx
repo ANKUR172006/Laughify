@@ -123,7 +123,7 @@ export default function LeaderboardPage() {
                   <div className="rank-cell">{badgeForRank(index + 1)}</div>
                   <div className="avatar-cell">
                     {player.profilePic ? (
-                      <img src={player.profilePic} alt={player.username || "Player"} />
+                      <img src={player.profilePic} alt={player.username || "Player"} loading="lazy" decoding="async" width="48" height="48" />
                     ) : (
                       <User size={24} />
                     )}

@@ -6,7 +6,7 @@ const feedbackRouter = require("./routes/feedback.router");
 const cookieParser = require("cookie-parser");
 const cors = require("cors");
 const app = express();
-app.use(express.json({ limit: "10mb" })); // Increase limit for base64 images
+app.use(express.json({ limit: "50mb" }));
 app.use(cookieParser());
 app.use(cors({
     origin: process.env.CORS_ORIGIN || "http://localhost:5173",
@@ -16,16 +16,38 @@ app.use("/api/auth", authRouter);
 app.use("/api/game", gameRouter);
 app.use("/api/feedback", feedbackRouter);
 
-// Serve static files from dist folder
-app.use(express.static(path.join(__dirname, "../dist")));
+const distDir = path.join(__dirname, "../dist");
 
-// Handle SPA fallback - all non-api requests go to index.html
+const LONG_CACHE = /\.[a-f0-9]{8}\.(css|js|png|jpg|jpeg|gif|webp|svg|woff2?|ttf|otf|ico)$/i;
+const MEDIUM_CACHE = /\.(png|jpg|jpeg|gif|webp|svg|woff2?|ttf|otf|ico)$/i;
+
+app.use((req, res, next) => {
+    if (req.path.startsWith("/api")) return next();
+
+    if (LONG_CACHE.test(req.path)) {
+        res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+    } else if (MEDIUM_CACHE.test(req.path)) {
+        res.setHeader("Cache-Control", "public, max-age=604800, stale-while-revalidate=86400");
+    } else if (/\.html$/i.test(req.path) || req.path === "/") {
+        res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+    } else {
+        res.setHeader("Cache-Control", "public, max-age=3600, stale-while-revalidate=86400");
+    }
+    next();
+});
+
+app.use(express.static(distDir, {
+    index: false,
+    extensions: [],
+}));
+
 app.use((req, res, next) => {
     if (!req.path.startsWith("/api")) {
-        res.sendFile(path.join(__dirname, "../dist/index.html"));
+        res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+        res.sendFile(path.join(distDir, "index.html"));
     } else {
         next();
     }
 });
 
-module.exports=app;
+module.exports = app;

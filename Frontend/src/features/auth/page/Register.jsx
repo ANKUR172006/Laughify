@@ -3,10 +3,10 @@ import "../styles/Register.scss";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { GoogleLogin } from "@react-oauth/google";
-import { ArrowLeft, Eye, EyeOff } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff, KeyRound, ShieldCheck, Sparkles } from "lucide-react";
 
 function Register() {
-  const { loading, handleRegister, handleVerifyRegisterOtp, handleGoogleAuth } = useAuth();
+  const { loading, handleRegister, handleVerifyRegisterOtp, handleGoogleAuth, handleGuestLogin } = useAuth();
   const navigate = useNavigate();
 
   const [username, setUsername] = useState("");
@@ -33,7 +33,7 @@ function Register() {
       const dh = window.innerHeight / 15;
       const x = event.pageX / dw;
       const y = event.pageY / dh;
-      
+
       if (eyeBallLeftRef.current) {
         eyeBallLeftRef.current.style.width = `${x}px`;
         eyeBallLeftRef.current.style.height = `${y}px`;
@@ -116,6 +116,11 @@ function Register() {
     }
   }
 
+  const handleContinueGuest = () => {
+    handleGuestLogin();
+    navigate("/");
+  };
+
   return (
     <div className="auth-container" ref={containerRef}>
       <button className="back-button" onClick={() => navigate("/")}>
@@ -144,13 +149,47 @@ function Register() {
           <div className="finger"></div>
         </div>
       </div>
-      
+
       <form className={`auth-form ${isFormUp ? 'up' : ''} ${wrongEntry ? 'wrong-entry' : ''}`} ref={formRef} onSubmit={handleSubmit}>
         <div className="hand"></div>
         <div className="hand rgt"></div>
-        
-        <h1>{verificationSent ? "Verify Email" : "Register"}</h1>
-        
+
+        <h1>{verificationSent ? "Verify Email" : "Sign Up"}</h1>
+
+        {!verificationSent && (
+          <>
+            <div className="trust-badges" aria-label="Account privacy and security notes">
+              <div className="trust-badge">
+                <ShieldCheck size={16} />
+                <span>Google verified sign-in</span>
+              </div>
+              <div className="trust-badge">
+                <KeyRound size={16} />
+                <span>Email code verification</span>
+              </div>
+            </div>
+
+            <p className="auth-trust-note">
+              Register with Google or email. Your password is protected, and camera access is requested only when you play.
+            </p>
+
+            <button
+              type="button"
+              className="btn-guest-continue"
+              onClick={handleContinueGuest}
+            >
+              <Sparkles size={18} />
+              Continue Without Login
+            </button>
+
+            <div className="auth-divider">
+              <div />
+              <span>or create account</span>
+              <div />
+            </div>
+          </>
+        )}
+
         {error && <div className="alert">{error}</div>}
         {notice && <p className="auth-notice">{notice}</p>}
 
@@ -262,15 +301,6 @@ function Register() {
         <button type="submit" disabled={loading} className="btn">
           {loading ? "Please wait..." : verificationSent ? "Verify & Join" : "Send Code"}
         </button>
-
-        {!verificationSent && (
-          <div className="privacy-note">
-            Prefer privacy? Skip signup and <Link to="/login">login with demo</Link>:
-            <span className="privacy-note-cred"> demo</span>
-            <span className="privacy-note-sep"> / </span>
-            <span className="privacy-note-cred">123456</span>.
-          </div>
-        )}
       </form>
 
       <div className="auth-footer">

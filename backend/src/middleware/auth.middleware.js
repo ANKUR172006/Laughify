@@ -35,7 +35,23 @@ async function authUser(req,res,next){
     }
 }
 
+async function optionalAuthUser(req, res, next) {
+    try {
+        const token = req.cookies.token;
+        if (!token) return next();
+
+        const isTokenBlacklisted = await redis.get(token);
+        if (isTokenBlacklisted) return next();
+
+        req.user = jwt.verify(token, process.env.JWT_SECRET);
+    } catch(err) {
+        req.user = null;
+    }
+    next();
+}
+
 
 module.exports={
-    authUser
+    authUser,
+    optionalAuthUser
 }

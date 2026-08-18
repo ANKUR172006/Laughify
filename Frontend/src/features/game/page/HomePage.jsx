@@ -96,21 +96,23 @@ const HomePage = () => {
           <div className="nav-actions">
             {user ? (
               <div className="user-section">
-                <Link to="/profile" className="nav-link">Profile</Link>
+                {!user.isGuest && <Link to="/profile" className="nav-link">Profile</Link>}
                 <Link to="/leaderboard" className="nav-link">Leaderboard</Link>
-                <Link to="/love-wall" className="nav-link">Love Wall</Link>
-                <button
-                  className="btn-nav btn-feedback"
-                  onClick={openFeedback}
-                  title="Share your feedback!"
-                  aria-label="Share feedback"
-                >
-                  <MessageSquareHeart size={18} />
-                </button>
+                {!user.isGuest && <Link to="/love-wall" className="nav-link">Love Wall</Link>}
+                {!user.isGuest && (
+                  <button
+                    className="btn-nav btn-feedback"
+                    onClick={openFeedback}
+                    title="Share your feedback!"
+                    aria-label="Share feedback"
+                  >
+                    <MessageSquareHeart size={18} />
+                  </button>
+                )}
                 <div className="user-info">
                   <div className="avatar">
                     {user.profilePic ? (
-                      <img src={user.profilePic} alt={user.username || "Profile"} />
+                      <img src={user.profilePic} alt={user.username || "Profile"} loading="lazy" decoding="async" width="40" height="40" />
                     ) : (
                       <User size={20} />
                     )}

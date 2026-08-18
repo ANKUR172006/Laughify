@@ -3,7 +3,7 @@ import { useAuthContext } from "../authContext";
 import { useState } from "react";
 
 export const useAuth = () => {
-  const { user, loading, setUser, logout } = useAuthContext();
+  const { user, loading, setUser, logout, loginAsGuest } = useAuthContext();
   const [authLoading, setAuthLoading] = useState(false);
 
   async function handleRegister({ username, email, password }) {
@@ -11,6 +11,7 @@ export const useAuth = () => {
     try {
       const data = await register({ username, email, password });
       if (data.success && data.user) {
+        localStorage.removeItem("laughify_guest");
         setUser(data.user);
       } else if (data.success && data.verificationRequired) {
         return data;
@@ -31,6 +32,7 @@ export const useAuth = () => {
     try {
       const data = await verifyRegisterOtp({ email, otp });
       if (data.success) {
+        localStorage.removeItem("laughify_guest");
         setUser(data.user);
       } else {
         throw new Error(data.message);
@@ -48,6 +50,7 @@ export const useAuth = () => {
     try {
       const data = await login({ identifier, password });
       if (data.success) {
+        localStorage.removeItem("laughify_guest");
         setUser(data.user);
       } else {
         throw new Error(data.message);
@@ -65,6 +68,7 @@ export const useAuth = () => {
     try {
       const data = await googleAuth({ credential });
       if (data.success) {
+        localStorage.removeItem("laughify_guest");
         setUser(data.user);
       } else {
         throw new Error(data.message);
@@ -84,6 +88,7 @@ export const useAuth = () => {
     handleVerifyRegisterOtp,
     handleLogin,
     handleGoogleAuth,
+    handleGuestLogin: loginAsGuest,
     handleLogout: logout,
   };
 };

@@ -10,8 +10,8 @@ export async function getVideoByLevel(level) {
   return response.data;
 }
 
-export async function uploadUserPhoto(level, imageData) {
-  const response = await api.post("/photo", { level, imageData });
+export async function uploadUserPhoto(level, videoData) {
+  const response = await api.post("/photo", { level, videoData });
   return response.data;
 }
 

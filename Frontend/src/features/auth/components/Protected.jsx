@@ -1,16 +1,29 @@
 import React, { useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { useAuthContext } from '../authContext';
 
 const Protected = ({ children }) => {
-  const { user, loading } = useAuth();
+  const { loading } = useAuth();
+  const { user } = useAuthContext();
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
-    if (!loading && !user) {
+    if (loading) return;
+
+    if (!user) {
       navigate("/login", { replace: true });
+      return;
     }
-  }, [user, loading, navigate]);
+
+    if (user.isGuest) {
+      const registeredOnly = ["/profile"];
+      if (registeredOnly.includes(location.pathname)) {
+        navigate("/login", { replace: true });
+      }
+    }
+  }, [user, loading, navigate, location.pathname]);
 
   if (loading) {
     return (

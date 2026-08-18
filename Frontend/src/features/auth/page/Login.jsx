@@ -3,10 +3,10 @@ import "../styles/Login.scss";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { GoogleLogin } from "@react-oauth/google";
-import { ArrowLeft, Eye, EyeOff } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff, LockKeyhole, ShieldCheck, Sparkles } from "lucide-react";
 
 function Login() {
-  const { loading, handleLogin, handleGoogleAuth } = useAuth();
+  const { loading, handleLogin, handleGoogleAuth, handleGuestLogin } = useAuth();
   const navigate = useNavigate();
 
   const [identifier, setIdentifier] = useState("");
@@ -28,7 +28,7 @@ function Login() {
       const dh = window.innerHeight / 15;
       const x = event.pageX / dw;
       const y = event.pageY / dh;
-      
+
       if (eyeBallLeftRef.current) {
         eyeBallLeftRef.current.style.width = `${x}px`;
         eyeBallLeftRef.current.style.height = `${y}px`;
@@ -85,6 +85,11 @@ function Login() {
     }
   };
 
+  const handleContinueGuest = () => {
+    handleGuestLogin();
+    navigate("/");
+  };
+
   return (
     <div className="auth-container" ref={containerRef}>
       <button className="back-button" onClick={() => navigate("/")} aria-label="Back to home">
@@ -113,13 +118,43 @@ function Login() {
           <div className="finger"></div>
         </div>
       </div>
-      
+
       <form className={`auth-form ${isFormUp ? 'up' : ''} ${wrongEntry ? 'wrong-entry' : ''}`} ref={formRef} onSubmit={handleSubmit}>
         <div className="hand"></div>
         <div className="hand rgt"></div>
-        
+
         <h1>Sign In</h1>
-        
+
+        <div className="trust-badges" aria-label="Account privacy and security notes">
+          <div className="trust-badge">
+            <ShieldCheck size={16} />
+            <span>Google verified sign-in</span>
+          </div>
+          <div className="trust-badge">
+            <LockKeyhole size={16} />
+            <span>Secure session cookie</span>
+          </div>
+        </div>
+
+        <p className="auth-trust-note">
+          Use Google or email password. Camera access is requested only when you start a level.
+        </p>
+
+        <button
+          type="button"
+          className="btn-guest-continue"
+          onClick={handleContinueGuest}
+        >
+          <Sparkles size={18} />
+          Continue Without Login
+        </button>
+
+        <div className="auth-divider">
+          <div />
+          <span>or sign in</span>
+          <div />
+        </div>
+
         {error && <div className="alert">{error}</div>}
 
         <div className="google-login-wrap">
@@ -175,13 +210,6 @@ function Login() {
         <button type="submit" disabled={loading} className="btn">
           {loading ? "Signing in..." : "Login"}
         </button>
-
-        <div className="privacy-note">
-          If you don’t want to share personal data, use demo login:
-          <span className="privacy-note-cred"> demo</span>
-          <span className="privacy-note-sep"> / </span>
-          <span className="privacy-note-cred">123456</span>. We respect your privacy.
-        </div>
       </form>
 
       <div className="auth-footer">

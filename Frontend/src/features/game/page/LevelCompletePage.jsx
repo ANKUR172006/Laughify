@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import gsap from "gsap";
 import { Trophy, ArrowRight, Home, Sparkles } from "lucide-react";
+import { useAuthContext } from "../../auth/authContext";
 import "../styles/LevelCompletePage.scss";
 
 const MotionDiv = motion.div;
@@ -10,6 +11,7 @@ const MotionButton = motion.button;
 
 export default function LevelCompletePage() {
   const navigate = useNavigate();
+  const { user } = useAuthContext();
   const containerRef = useRef(null);
 
   useEffect(() => {
@@ -83,19 +85,28 @@ export default function LevelCompletePage() {
           </h1>
           
           <p className="tagline">
-            Keep a Straight Face or Lose It All
+            {user?.isGuest ? "Nice run! Register to unlock more levels." : "Keep a Straight Face or Lose It All"}
           </p>
 
           <div className="level-complete-buttons">
-            <MotionButton
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="next-level-btn btn-primary"
-              onClick={() => navigate("/game")}
-            >
-              <ArrowRight size={22} />
-              Next Level
-            </MotionButton>
+            {user?.isGuest ? (
+              <MotionDiv whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <Link to="/register" className="next-level-btn btn-primary">
+                  <ArrowRight size={22} />
+                  Register
+                </Link>
+              </MotionDiv>
+            ) : (
+              <MotionButton
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="next-level-btn btn-primary"
+                onClick={() => navigate("/game")}
+              >
+                <ArrowRight size={22} />
+                Next Level
+              </MotionButton>
+            )}
             <MotionDiv
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}

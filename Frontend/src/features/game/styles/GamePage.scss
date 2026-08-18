@@ -131,6 +131,27 @@ $border-chunky: 4px solid $dark-border;
   justify-content: center;
 }
 
+.demo-face-preview {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: $dark-border;
+  font-family: 'Fredoka', 'Comic Sans MS', cursive, sans-serif;
+  font-size: 15px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: linear-gradient(135deg, #ffffff 0%, #fef3c7 50%, #fce7f3 100%);
+
+  svg {
+    stroke-width: 3;
+  }
+}
+
 .fullscreen-video {
   position: fixed;
   top: 0;
@@ -145,6 +166,49 @@ $border-chunky: 4px solid $dark-border;
   margin: 0;
   padding: 0;
   border: none;
+}
+
+.demo-video-placeholder {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(circle at 18% 20%, rgba(251, 191, 36, 0.55), transparent 22%),
+    radial-gradient(circle at 82% 18%, rgba(244, 114, 182, 0.45), transparent 24%),
+    radial-gradient(circle at 50% 88%, rgba(52, 211, 153, 0.42), transparent 26%),
+    linear-gradient(180deg, #fff7ed 0%, #fef3c7 50%, #fce7f3 100%);
+}
+
+.demo-video-placeholder::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(45deg, rgba(15, 23, 42, 0.08) 25%, transparent 25%),
+    linear-gradient(-45deg, rgba(15, 23, 42, 0.08) 25%, transparent 25%);
+  background-size: 42px 42px;
+  opacity: 0.55;
+}
+
+.demo-video-lock {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 132px;
+  height: 132px;
+  border: 5px solid $dark-border;
+  border-radius: 28px;
+  background: #ffffff;
+  box-shadow: $shadow-offset;
+  color: $dark-border;
+
+  svg {
+    stroke-width: 3;
+  }
 }
 
 .loading-screen {

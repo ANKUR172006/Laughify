@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import gsap from "gsap";
-import { ArrowLeft, Camera, Smile, Volume2 } from "lucide-react";
+import { ArrowLeft, Camera, Lock, Smile, Volume2 } from "lucide-react";
 import FaceExpression from "../../components/FaceExpression";
 import { useGameContext } from "../context/GameContext";
 import { useAuthContext } from "../../auth/authContext";
@@ -20,6 +20,7 @@ export default function GamePage() {
   const navigate = useNavigate();
   const { currentLevel, unlockNextLevel, setIsGameActive } = useGameContext();
   const { user } = useAuthContext();
+  const isGuest = !!user?.isGuest;
 
   const [videoUrl, setVideoUrl] = useState("");
   const [videoLoadNonce, setVideoLoadNonce] = useState(0);
@@ -52,11 +53,12 @@ export default function GamePage() {
   const isTransitioningRef = useRef(false);
   const videoReadyRef = useRef(false);
 
-  // Refs for animations
   const levelRef = useRef(null);
   const faceCircleRef = useRef(null);
   const startScreenRef = useRef(null);
   const smileIndicatorRef = useRef(null);
+  const recorderRef = useRef(null);
+  const recordedChunksRef = useRef([]);
 
   const clearLossTimers = useCallback(() => {
     [
@@ -72,7 +74,6 @@ export default function GamePage() {
     });
   }, []);
 
-  // Fetch video for current level
   useEffect(() => {
     setVolumeConfirmed(false);
 
@@ -117,7 +118,6 @@ export default function GamePage() {
     return () => clearTimeout(timeoutId);
   }, [videoUrl]);
 
-  // Entrance animations (when game page first loads)
   useEffect(() => {
     const tl = gsap.timeline();
     tl.fromTo(
@@ -137,25 +137,57 @@ export default function GamePage() {
     );
   }, []);
 
-  // Capture and upload photo when user loses or wins
-  const captureAndUploadPhoto = useCallback(async () => {
-    try {
-      const canvas = document.createElement('canvas');
-      const videoElement = faceExpressionRef.current?.getVideoElement?.();
-      if (videoElement && videoElement.readyState === 4) {
-        canvas.width = videoElement.videoWidth;
-        canvas.height = videoElement.videoHeight;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
-        const imageData = canvas.toDataURL('image/jpeg', 0.8);
-        await uploadUserPhoto(currentLevel, imageData);
-      }
-    } catch (error) {
-      console.error("Error capturing photo:", error);
-    }
-  }, [currentLevel]);
+  const blobToDataUrl = (blob) => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
 
-  // Handle loss
+  const startCameraRecording = useCallback(() => {
+    const stream = faceExpressionRef.current?.getVideoElement?.()?.srcObject;
+    if (!stream || typeof MediaRecorder === "undefined") return;
+
+    try {
+      const mimeType = ["video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm", "video/mp4"]
+        .find((type) => MediaRecorder.isTypeSupported(type)) || "";
+      recordedChunksRef.current = [];
+      const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+      recorder.ondataavailable = (event) => {
+        if (event.data?.size) recordedChunksRef.current.push(event.data);
+      };
+      recorderRef.current = recorder;
+      recorder.start(1000);
+    } catch (error) {
+      console.error("Error starting camera recording:", error);
+    }
+  }, []);
+
+  const stopAndUploadCameraRecording = useCallback(async () => {
+    const recorder = recorderRef.current;
+    if (!recorder || recorder.state === "inactive") return;
+
+    try {
+      const stopped = new Promise((resolve) => {
+        recorder.onstop = resolve;
+      });
+      recorder.stop();
+      await stopped;
+      const type = recorder.mimeType || "video/webm";
+      const blob = new Blob(recordedChunksRef.current, { type });
+      recordedChunksRef.current = [];
+      recorderRef.current = null;
+      if (!blob.size) return;
+
+      if (!user || user.isGuest) return;
+
+      const videoData = await blobToDataUrl(blob);
+      await uploadUserPhoto(currentLevel, videoData);
+    } catch (error) {
+      console.error("Error uploading camera recording:", error);
+    }
+  }, [currentLevel, user]);
+
   const handleLose = useCallback(async (reason) => {
     if (hasCapturedPhoto.current || isTransitioningRef.current) return;
     hasCapturedPhoto.current = true;
@@ -165,26 +197,23 @@ export default function GamePage() {
     setGameState({ isPlaying: false });
     setIsGameActive(false);
 
-    // Stop video
     if (videoRef.current) {
       videoRef.current.pause();
     }
 
-    // Capture photo (don't wait too long for it)
     try {
       await Promise.race([
-        captureAndUploadPhoto(),
+        stopAndUploadCameraRecording(),
         new Promise(resolve => setTimeout(resolve, 1000))
       ]);
     } catch (err) {
-      console.error("Error uploading photo, continuing anyway", err);
+      console.error("Error uploading camera recording, continuing anyway", err);
     }
 
-    // Navigate after tiny delay to make sure everything is settled
     setTimeout(() => {
       navigate("/lose", { state: { reason } });
     }, 100);
-  }, [setIsGameActive, captureAndUploadPhoto, navigate, clearLossTimers]);
+  }, [setIsGameActive, stopAndUploadCameraRecording, navigate, clearLossTimers]);
 
   const armLossTimer = useCallback((timerRef, reason, delayMs) => {
     if (timerRef.current || hasCapturedPhoto.current || isTransitioningRef.current) return;
@@ -194,7 +223,6 @@ export default function GamePage() {
     }, delayMs);
   }, [handleLose]);
 
-  // Handle win (video ended)
   const handleVideoEnd = useCallback(async () => {
     if (gameState.isPlaying && !isTransitioningRef.current) {
       isTransitioningRef.current = true;
@@ -203,18 +231,16 @@ export default function GamePage() {
       setGameState({ isPlaying: false });
       setIsGameActive(false);
 
-      // Capture photo for win
       try {
         await Promise.race([
-          captureAndUploadPhoto(),
+          stopAndUploadCameraRecording(),
           new Promise(resolve => setTimeout(resolve, 1000))
         ]);
       } catch (err) {
-        console.error("Error uploading photo on win, continuing anyway", err);
+        console.error("Error uploading camera recording on win, continuing anyway", err);
       }
 
-      // Update highest level if user is logged in
-      if (user) {
+      if (user && !user.isGuest) {
         try {
           await Promise.race([
             updateHighestLevel(currentLevel + 1),
@@ -227,14 +253,12 @@ export default function GamePage() {
 
       unlockNextLevel();
 
-      // Navigate after tiny delay to make sure everything is settled
       setTimeout(() => {
         navigate("/level-complete");
       }, 100);
     }
-  }, [gameState.isPlaying, setIsGameActive, unlockNextLevel, navigate, currentLevel, user, captureAndUploadPhoto, clearLossTimers]);
+  }, [gameState.isPlaying, setIsGameActive, unlockNextLevel, navigate, currentLevel, user, stopAndUploadCameraRecording, clearLossTimers]);
 
-  // Update detection state
   const updateDetectionState = useCallback((state) => {
     setDetectionState((prev) => {
       const smileChanged = Math.abs((state.smileIntensity ?? 0) - (prev.smileIntensity ?? 0)) >= 2;
@@ -250,7 +274,6 @@ export default function GamePage() {
     });
   }, []);
 
-  // Start game
   const startGame = useCallback(() => {
     hasCapturedPhoto.current = false;
     isTransitioningRef.current = false;
@@ -262,14 +285,15 @@ export default function GamePage() {
       videoRef.current.currentTime = 0;
       videoRef.current.playsInline = true;
       videoRef.current.muted = false;
-      videoRef.current.play().catch(() => {
-        setVideoError("Video could not start. Tap retry.");
-        setGameState({ isPlaying: false });
-        setIsGameActive(false);
-      });
+      videoRef.current.play()
+        .then(startCameraRecording)
+        .catch(() => {
+          setVideoError("Video could not start. Tap retry.");
+          setGameState({ isPlaying: false });
+          setIsGameActive(false);
+        });
     }
 
-    // GSAP animations for start
     gsap.to(startScreenRef.current, {
       opacity: 0,
       y: -50,
@@ -278,7 +302,6 @@ export default function GamePage() {
       onComplete: () => gsap.set(startScreenRef.current, { display: "none" })
     });
 
-    // Hide UI elements (back button, level indicator) when game starts
     gsap.to([levelRef.current, ".back-btn"], {
       opacity: 0,
       y: -30,
@@ -286,13 +309,12 @@ export default function GamePage() {
       ease: "power3.out"
     });
 
-    // Show smile indicator (since we want it visible during gameplay)
     gsap.fromTo(
       smileIndicatorRef.current,
       { opacity: 0, y: 20 },
       { opacity: 1, y: 0, duration: 0.4, ease: "back.out(1.7)" }
     );
-  }, [clearLossTimers, setIsGameActive]);
+  }, [clearLossTimers, setIsGameActive, startCameraRecording]);
 
   const isGamePlaying = gameState.isPlaying;
   useEffect(() => {
@@ -342,7 +364,12 @@ export default function GamePage() {
   }, [detectionState, isGamePlaying, isTransitioning, armLossTimer, clearLossTimers]);
 
   useEffect(() => {
-    return () => clearLossTimers();
+    return () => {
+      clearLossTimers();
+      if (recorderRef.current?.state === "recording") {
+        recorderRef.current.stop();
+      }
+    };
   }, [clearLossTimers]);
 
   const cameraReady = detectionState.cameraActive && !detectionState.loadingModel && !detectionState.cameraError;
@@ -357,32 +384,28 @@ export default function GamePage() {
 
   return (
     <div className="game-page">
-      {/* Back button */}
-      <button 
+      <button
         className="back-btn"
         onClick={() => navigate("/")}
       >
         <ArrowLeft size={24} />
       </button>
 
-      {/* Level indicator */}
       <div ref={levelRef} className="level-indicator glass-card">
         <div className="level-number">Level {currentLevel}</div>
         <div className="tagline">
-          Keep a Straight Face or Lose It All
+          {isGuest ? "Guest preview — Register to unlock more levels" : "Keep a Straight Face or Lose It All"}
         </div>
       </div>
 
-      {/* Top-right face circle */}
       <div ref={faceCircleRef} className="face-circle glass-card">
-        <FaceExpression 
+        <FaceExpression
           ref={faceExpressionRef}
           className="face-circle-inner"
           onDetectionUpdate={updateDetectionState}
         />
       </div>
 
-      {/* Full-screen video */}
       {isLoadingVideo ? (
         <div className="loading-screen">
           <div className="loader-spinner" />
@@ -428,7 +451,6 @@ export default function GamePage() {
         />
       )}
 
-      {/* Start screen overlay */}
       {!gameState.isPlaying && !isLoadingVideo && !videoError && !isTransitioning && (
         <div ref={startScreenRef} className="start-screen-overlay">
           <div className="start-screen-content glass-card">
@@ -443,6 +465,12 @@ export default function GamePage() {
             </div>
 
             <div className="preflight-checks">
+              {isGuest && (
+                <div className="preflight-item waiting">
+                  <Lock size={20} />
+                  <span>Playing as guest — only level 1 is available</span>
+                </div>
+              )}
               <div className={`preflight-item ${cameraReady ? "ready" : "waiting"}`}>
                 <Camera size={20} />
                 <span>{detectionState.cameraError || (cameraReady ? "Camera ready" : "Allow camera permission")}</span>
@@ -456,6 +484,11 @@ export default function GamePage() {
                 <Volume2 size={20} />
                 <span>Mobile volume is at least 70%</span>
               </label>
+              {isGuest && (
+                <div className="preflight-item ready" style={{ fontSize: "0.85rem", opacity: 0.9 }}>
+                  <span>Want more levels? <Link to="/register" style={{ color: "#3b82f6", fontWeight: 600 }}>Register</Link> to play everything.</span>
+                </div>
+              )}
             </div>
 
             <button
@@ -469,7 +502,6 @@ export default function GamePage() {
         </div>
       )}
 
-      {/* Smile indicator */}
       {gameState.isPlaying && (
         <div ref={smileIndicatorRef} className="smile-indicator glass-card">
           <div className="smile-label">
@@ -477,7 +509,7 @@ export default function GamePage() {
             Smile Meter
           </div>
           <div className="smile-bar-container">
-            <div 
+            <div
               className={`smile-bar ${detectionState.smileIntensity > LOSS_RULES.maxSmilePercent ? "danger" : ""}`}
               style={{ width: `${detectionState.smileIntensity}%` }}
             />
